@@ -4,16 +4,79 @@ subtitle: 'Tipología y Ciclo de Vida de los Datos, Universitat Oberta de Catalu
 author: "Abel Romero Búrdalo y Paula Muñoz Lago"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output: 
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
   html_document:
     toc: yes
     toc_depth: 2
 ---
 
+\newpage
+
 # 1. Descripción del Dataset
+El dataset con el que vamos a realizar la práctica está relacionado con el número de votos por estado de EEUU en las recientes elecciones. Se ha obtenido de [Kaggle](https://www.kaggle.com/): [https://www.kaggle.com/imoore/2020-us-general-election-turnout-rates](https://www.kaggle.com/imoore/2020-us-general-election-turnout-rates). Cabe destacar que los datos presentes en el dataset tratan únicamente la población con derecho a voto, es decir, únicamente los estadounidenses mayores de 18 años. La primera fila del dataset incluye información de la totalidad del país.
+
+El conjunto dispone de 15 columnas:
+
+* **State**: Indica el estado del que trata la fila de datos.
+* **Source**: Fuente de datos (url).
+* **Official/Unofficial**: Esta columna indica si los datos reportados son una vez el conteo ha alcanzado el 100% (oficial), o si aún no se ha terminado el conteo (unofficial).
+* **Total Ballots Counted (Estimate)**: número total de votos en dicho estado.
+* **Vote for Highest Office**: Votos a la presidencia.
+* **VEP Turnout Rate**: Porcentaje de votantes. VEP, en inglés: Voting Elegible Population
+* **Voting-Eligible Population**: Población con derecho a voto.
+* **Voting-Age Population (VAP)**: Población total de estados unidos con 18 años o más, incluyendo a personas sin derecho a voto por razones diferentes a la edad, como personas sin la nacionalidad o criminales de ciertos estados, donde la ley se lo prohibe. [fuente](https://usafacts.org/data/topics/people-society/democracy-and-society/elections/presidential-voting-age-population/)
+* **% Non-citizen**: Porcentaje de personas con derecho a voto que no son ciudadanos estadounidenses.
+* **Prision**: Número de votantes desde la carcel.
+* **Probation**: Número de criminales con el tercer grado. Es decir, disfrutan de un periodo fuera de la carcel bajo supervisión.
+* **Parole**: Personas con permiso de permanencia temporal en EEUU.
+* **Total Ineligible Felon**: Número de personas en dicho estado que no tienen derecho a voto por criminalidad.
+* **Overseas Eligible**: Número de estadounidenses viviendo fuera del país, independientemente del estado.
+* **State abv**: Abreviatura del estado.
+
+Antes de proseguir, cargaremos los datos y realizaremos una breve inspección sobre los mismos (excepto sobre la columna sources, que contiene urls), para estudiar los valores contenidos en cada columna.
+
+```{r}
+fileDirectory <- getwd()
+csv_usa <- file.path(fileDirectory, '2020 November General Election - Turnout Rates.csv')
+usa_elections <- read.csv(csv_usa)
+```
+
+```{r warning = FALSE, message=FALSE}
+library(Hmisc)
+Hmisc::describe(usa_elections[, -2])
+```
+
+## 1.1. Importancia y objetivo del análisis
+Gracias a este dataset podemos estudiar cual ha sido el porcentaje de votantes, ya sea a favor de Trump o Biden. Así como plantear algunas clonclusiones sobre las diferencias por estados en cuanto a votos republicanos o demócratas.
+
+Estos análisis son de gran relevancia a la hora de establecer patrones de voto en grupos poblacionales en función de ciertas características.
 
 # 2. Integración y selección de los datos de interés a analizar
 
+En vistas a la descripción de las columnas observamos que disponemos de columnas repetidas, como es el caso de la abreviatura del estado y el nombre del mismo. Por ello, la columna relativa a la abreviatura del estado será la primera que eliminemos, con el fin de evitar redundancia en los datos. 
+
+```{r}
+usa_elections <- usa_elections[, -ncol(usa_elections)]
+```
+
+Proseguiremos con la nueva última columna, "Overseas Eligible", que se refiere al número de estadounidenses viviendo fuera del país. Ésta columna solo tiene un valor diferente a null, y está relacionado con el dato en la primera fila, correspondiente con la totalidad de estados. Es por ello, que a continuación retiraremos la priemra fila y la guardaremos en una variable, para así poder estuadiar los datos por estado, pero manteniendo la información del total por si nos hiciese falta a continuación. Finalmente eliminaremos la columna "Overseas Eligible", dado que todos sus valores son null.
+
+```{r}
+usa_total <- usa_elections[1,]
+usa_elections <- usa_elections[2:nrow(usa_elections),-ncol(usa_elections)]
+```
+
+La carencia de utilidad de las columnas relativas a la fuente de datos y si se trata de una fuente oficial o no, hacen que también procedamos a eliminarlas del dataset.
+
+```{r}
+usa_elections <- usa_elections[,-c(grep("Source", colnames(usa_elections)), grep("Official.Unofficial", colnames(usa_elections)))]
+```
+
 # 3. Limpieza de los datos
+
+Todas aquellas que son porcentajes (string), cambiar a numérico. Quitar las comas que separan los números. https://www.kaggle.com/thomaskonstantin/2020-us-election-turnout-rates-eda
 
 ## 3.1. Gestión de datos inválidos
 
