@@ -14,6 +14,7 @@ output:
 
 \newpage
 
+
 # 1. Descripción del Dataset
 El dataset con el que vamos a realizar la práctica está relacionado con el número de votos por estado de EEUU en las recientes elecciones. Se ha obtenido de [Kaggle](https://www.kaggle.com/): [https://www.kaggle.com/imoore/2020-us-general-election-turnout-rates](https://www.kaggle.com/imoore/2020-us-general-election-turnout-rates). Cabe destacar que los datos presentes en el dataset tratan únicamente la población con derecho a voto, es decir, únicamente los estadounidenses mayores de 18 años. La primera fila del dataset incluye información de la totalidad del país.
 
@@ -51,7 +52,7 @@ Hmisc::describe(usa_elections[, -2])
 ## 1.1. Importancia y objetivo del análisis
 Gracias a este dataset podemos estudiar cual ha sido el porcentaje de votantes, ya sea a favor de Trump o Biden. Así como plantear algunas clonclusiones sobre las diferencias por estados en cuanto a votos republicanos o demócratas.
 
-Estos análisis son de gran relevancia a la hora de establecer patrones de voto en grupos poblacionales en función de ciertas características.
+Estos análisis son de gran relevancia a la hora de establecer patrones de voto en grupos poblacionales en función de ciertas características. Además, disponiendo de conjuntos como este para cada año de elecciones durante un largo periodo de tiempo, podríamos predecir con Machine Learning cuál va a ser el comportamiento de los votantes de cada estado en base a su historia electoral.
 
 # 2. Integración y selección de los datos de interés a analizar
 
@@ -76,13 +77,75 @@ usa_elections <- usa_elections[,-c(grep("Source", colnames(usa_elections)), grep
 
 # 3. Limpieza de los datos
 
-Todas aquellas que son porcentajes (string), cambiar a numérico. Quitar las comas que separan los números. https://www.kaggle.com/thomaskonstantin/2020-us-election-turnout-rates-eda
+En este apartado llevaremos a cabo un proceso de limpieza de datos, comenzando por establecer los tipos de datos correctos para cada variable (columna), y gestionando los valores nulos (casillas vacías). Finalmente, estudiaremos la presencia de valores extremos y cómo tratarlos.
 
-## 3.1. Gestión de datos inválidos
+## 3.1. Tipos de Variables {#tiposDeVariables}
+Cada columna de nuestro dataframe ``` usa_elections ``` es un Factor, conteniendo diferentes niveles. En el siguiente resumen de nuestro dataframe podemos observar el tipo de datos correspondiente con cada uno de ellos.
 
-## 3.2. Identificación y tratamiento de valores extremos
+```{r}
+str(usa_elections)
+```
+Como se aprecia, los datos relativos a números se han cargado como strings, por lo que podemos concluir que la única columna que se encuentra en un estado definitivo es la primera, State. Para el resto de columnas debemos aplicar una limpieza, quitando los caracteres no numéricos y así poder convertirlos al tipo de datos correcto. Además, dichas columnas no queremos que sean de tipo Factor, dado que son variables contínuas, la única que mantendremos como tipo Factor será State, dado que es una variable discreta.
+
+Para ello definiremos dos funciones, que aplicaremos a las columnas que lo necesiten. Estas funciones eliminarán los caracteres necesarios para a continuación poder convertir los datos a números.
+
+```{r}
+# Definición de las funciones
+remove_comma <- function(x) gsub(',', '', x)
+remove_percent <- function(x) gsub('%', '', x)
+
+# Aplicación de las mismas sobre las columnas apropiadas
+usa_elections[,2] <- sapply(usa_elections[,2], remove_comma)
+usa_elections[,3] <- sapply(usa_elections[,3], remove_comma)
+usa_elections[,4] <- sapply(usa_elections[,4], remove_percent)
+usa_elections[,5] <- sapply(usa_elections[,5], remove_comma)
+usa_elections[,6] <- sapply(usa_elections[,6], remove_comma)
+usa_elections[,7] <- sapply(usa_elections[,7], remove_percent)
+usa_elections[,8] <- sapply(usa_elections[,8], remove_comma)
+usa_elections[,9] <- sapply(usa_elections[,9], remove_comma)
+usa_elections[,10] <- sapply(usa_elections[,10], remove_comma)
+usa_elections[,11] <- sapply(usa_elections[,11], remove_comma)
+```
+
+Una vez obtenido el resultado necesario para poder convertir al tipo deseado, ejecutamos las siguientes líneas:
+```{r}
+usa_elections[,2] <- as.numeric(usa_elections[,2])
+usa_elections[,3] <- as.numeric(usa_elections[,3])
+usa_elections[,4] <- as.numeric(usa_elections[,4])
+usa_elections[,5] <- as.numeric(usa_elections[,5])
+usa_elections[,6] <- as.numeric(usa_elections[,6])
+usa_elections[,7] <- as.numeric(usa_elections[,7])
+usa_elections[,8] <- as.numeric(usa_elections[,8])
+usa_elections[,9] <- as.numeric(usa_elections[,9])
+usa_elections[,10] <- as.numeric(usa_elections[,10])
+usa_elections[,11] <- as.numeric(usa_elections[,11])
+```
+
+Finalmente, imprimiremos el resumen de las columnas de nuestro dataset para comprobar que todo se ha transformado correctamente.
+
+```{r}
+str(usa_elections)
+```
+
+## 3.2. Gestión de datos inválidos
+Para comprobar qué columnas contienen datos 'vacíos' y poder proceder a trabajar con ellas, utilizaremos la función colSums, que aplica una función a todas las columnas de un dataframe y después aplica una suma.
+
+```{r}
+colSums(is.na(usa_elections))
+```
+
+Como vemos, únicamente disponemos de una columna con datos vacíos, Vote for Highest Office President. Aquellos campos que contentan el valor NA, los cambbiaremos por 0, dando a entender que en ese estado no ha ganado el presidente. 
+REVISAR: no le veo mucho sentido, quizás no significa lo que creo?
+
+## 3.3. Identificación y tratamiento de valores extremos
 
 # 4. Análisis de los datos
+
+Gracias al tratamiento de los datos como numéricos en el [punto 3.1](#tiposDeVariables), podemos ejecutar pequeños análisis estadísticos, en los que observar la distribución de los datos.
+
+```{r}
+summary(usa_elections)
+```
 
 ## 4.1. Selección de los grupos de datos a analizar
 
@@ -91,5 +154,8 @@ Todas aquellas que son porcentajes (string), cambiar a numérico. Quitar las com
 ## 4.3. Aplicación de pruebas estadísticas
 
 # 5. Representación de los resultados a partir de tablas y gráficas
+
+Mostrar los datos sobre el mapa de eeuu
+
 
 # 6. Conclusiones
