@@ -4,21 +4,27 @@ subtitle: 'Tipología y Ciclo de Vida de los Datos, Universitat Oberta de Catalu
 author: "Abel Romero Búrdalo y Paula Muñoz Lago"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output: 
-  pdf_document:
-    toc: yes
-    toc_depth: '2'
   html_document:
     toc: yes
     toc_depth: 2
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
 ---
 
 \newpage
 
 
 # 1. Descripción del Dataset
-El dataset con el que vamos a realizar la práctica está relacionado con el número de votos por estado de EEUU en las recientes elecciones. Se ha obtenido de [Kaggle](https://www.kaggle.com/): [https://www.kaggle.com/imoore/2020-us-general-election-turnout-rates](https://www.kaggle.com/imoore/2020-us-general-election-turnout-rates). Cabe destacar que los datos presentes en el dataset tratan únicamente la población con derecho a voto, es decir, únicamente los estadounidenses mayores de 18 años. La primera fila del dataset incluye información de la totalidad del país.
+Los datasets con los que vamos a realizar la práctica estan relacionados con el número de votos por estado de EEUU en las recientes elecciones. Se han obtenido de [Kaggle](https://www.kaggle.com/): 
+- [https://www.kaggle.com/imoore/2020-us-general-election-turnout-rates](https://www.kaggle.com/imoore/2020-us-general-election-turnout-rates)
+- [https://www.kaggle.com/paultimothymooney/percent-voting-for-democratic-party-by-state](https://www.kaggle.com/paultimothymooney/percent-voting-for-democratic-party-by-state)
 
-El conjunto dispone de 15 columnas:
+Cabe destacar que los datos presentes en el primer dataset tratan únicamente la población con derecho a voto, es decir, únicamente los estadounidenses mayores de 18 años. La primera fila del dataset incluye información de la totalidad del país.
+
+En cuanto a los datos del segundo dataset, el número total de votos totales de republicanos y democratas no coincide con el total de votos por estado del primer juego de datos Esto es debido a que no se han contabilizado el número de votos a terceros partidos. Por ese motivo dicho dataset se va a utilizar para sacar el partido ganador en cada estado y se va añadir al primer juego de datos. Asimismo, este dataset ya ha sido tratado y no es necesario realizar tareas de limpieza, por lo que únicamente se va a utilizar para complementar el juego de datos 1
+
+El dataset con los datos referentes a las votaciones dispone de 15 columnas:
 
 * **State**: Indica el estado del que trata la fila de datos.
 * **Source**: Fuente de datos (url).
@@ -36,12 +42,23 @@ El conjunto dispone de 15 columnas:
 * **Overseas Eligible**: Número de estadounidenses viviendo fuera del país, independientemente del estado.
 * **State abv**: Abreviatura del estado.
 
-Antes de proseguir, cargaremos los datos y realizaremos una breve inspección sobre los mismos (excepto sobre la columna sources, que contiene urls), para estudiar los valores contenidos en cada columna.
+El dataset con los datos referentes a las votaciones a republicanos y democratas contiene la siguiente información:
+
+* **State**: Indica el estado del que trata la fila de datos.
+* **DEM**: Número de votos de los demócratas.
+* **REP**: Número de votos de los republicanos.
+* **usa_state**:  Indica el estado del que trata la fila de dato.
+* **usa_state_code**: Abreviatura del estado.
+* **percent_democrat**: Porcentaje de votos a los demócratas
+
+
+Antes de proseguir, cargaremos los datos relativos al primer dataset y realizaremos una breve inspección sobre los mismos (excepto sobre la columna sources, que contiene urls), para estudiar los valores contenidos en cada columna.
 
 ```{r}
 fileDirectory <- getwd()
 csv_usa <- file.path(fileDirectory, '2020 November General Election - Turnout Rates.csv')
 usa_elections <- read.csv(csv_usa)
+attach(usa_elections)
 ```
 
 ```{r warning = FALSE, message=FALSE}
@@ -49,8 +66,16 @@ library(Hmisc)
 Hmisc::describe(usa_elections[, -2])
 ```
 
+Cargamos el segundo dataset
+```{r}
+csv_dem_rep<- file.path(fileDirectory, 'democratic_vs_republican_votes_by_usa_state_2020.csv')
+usa_winner <- read.csv(csv_dem_rep)
+attach(usa_winner)
+```
+
+
 ## 1.1. Importancia y objetivo del análisis
-Gracias a este dataset podemos estudiar cual ha sido el porcentaje de votantes, ya sea a favor de Trump o Biden. Así como plantear algunas clonclusiones sobre las diferencias por estados en cuanto a votos republicanos o demócratas.
+Gracias a este dataset podemos estudiar como ha influido el numero de votantes y el porcentaje total de votaciones para que en unos estados u otros hayan ganado los dem. Así como plantear algunas clonclusiones sobre las diferencias por estados en cuanto a votos republicanos o demócratas.
 
 Estos análisis son de gran relevancia a la hora de establecer patrones de voto en grupos poblacionales en función de ciertas características. Además, disponiendo de conjuntos como este para cada año de elecciones durante un largo periodo de tiempo, podríamos predecir con Machine Learning cuál va a ser el comportamiento de los votantes de cada estado en base a su historia electoral.
 
@@ -75,6 +100,15 @@ La carencia de utilidad de las columnas relativas a la fuente de datos y si se t
 usa_elections <- usa_elections[,-c(grep("Source", colnames(usa_elections)), grep("Official.Unofficial", colnames(usa_elections)))]
 ```
 
+Por último se va a generar la columna `party_winners` a partir de los datos del segundo juego de datos. Para ello se van a comparar las columnas REP y DEM y se va a sacar el ganador de cada estado.
+
+```{r}
+party_winner<- ifelse(DEM>REP, "DEM","REP")
+usa_elections$party_winner<-party_winner
+```
+
+Una vez añadida la nueva columna al dataset original se va a proceder a realizar el análisis
+
 # 3. Limpieza de los datos
 
 En este apartado llevaremos a cabo un proceso de limpieza de datos, comenzando por establecer los tipos de datos correctos para cada variable (columna), y gestionando los valores nulos (casillas vacías). Finalmente, estudiaremos la presencia de valores extremos y cómo tratarlos.
@@ -85,7 +119,7 @@ Cada columna de nuestro dataframe ``` usa_elections ``` es un Factor, conteniend
 ```{r}
 str(usa_elections)
 ```
-Como se aprecia, los datos relativos a números se han cargado como strings, por lo que podemos concluir que la única columna que se encuentra en un estado definitivo es la primera, State. Para el resto de columnas debemos aplicar una limpieza, quitando los caracteres no numéricos y así poder convertirlos al tipo de datos correcto. Además, dichas columnas no queremos que sean de tipo Factor, dado que son variables contínuas, la única que mantendremos como tipo Factor será State, dado que es una variable discreta.
+Como se aprecia, los datos numéricos se han cargado como strings, por lo que podemos concluir que las única columnas que se encuentran en un tipo correcto son la primer y la última, State y party_winner. Esta última se deberá convertir a un tipo factor, puesto que representa la clase democrata o republicano. Para el resto de columnas debemos aplicar una limpieza, quitando los caracteres no numéricos y así poder convertirlos al tipo de datos correcto. Además, dichas columnas no queremos que sean de tipo Factor, dado que son variables contínuas, la única que mantendremos como tipo Factor será State, dado que es una variable discreta.
 
 Para ello definiremos dos funciones, que aplicaremos a las columnas que lo necesiten. Estas funciones eliminarán los caracteres necesarios para a continuación poder convertir los datos a números.
 
@@ -121,6 +155,11 @@ usa_elections[,10] <- as.numeric(usa_elections[,10])
 usa_elections[,11] <- as.numeric(usa_elections[,11])
 ```
 
+Acto seguido convertimo a tipo factor la variable cualitativa party_winner 
+
+```{r}
+usa_elections[,12] <- as.factor(usa_elections[,12])
+```
 Finalmente, imprimiremos el resumen de las columnas de nuestro dataset para comprobar que todo se ha transformado correctamente.
 
 ```{r}
@@ -134,10 +173,87 @@ Para comprobar qué columnas contienen datos 'vacíos' y poder proceder a trabaj
 colSums(is.na(usa_elections))
 ```
 
-Como vemos, únicamente disponemos de una columna con datos vacíos, Vote for Highest Office President. Aquellos campos que contentan el valor NA, los cambbiaremos por 0, dando a entender que en ese estado no ha ganado el presidente. 
-REVISAR: no le veo mucho sentido, quizás no significa lo que creo?
+Como vemos, únicamente disponemos de una columna con datos vacíos, Vote for Highest Office President. Este campo indica el número de votos válidos para la presidencia. Al no disponer de dicha información se ha decidido calcular la media de votos totales que si disponen de la información de votos a la presidencia y la media de la columna votos a la presidencia. Una vez obtenidas ambas medias se va a calcular el porcentaje medio de votos que han sido válidos para la presidencia y se van a extrapolar al conjunto de datos vacíos. Es decir, se va a multiplicar el porcentaje de votos válidas al total de votos en aquellos estados en que dicho campo este vacío.
 
+```{r}
+# Calculamos la media de los votos válidos para la presidencia
+mean_president=mean(usa_elections$Vote.for.Highest.Office..President.,na.rm=TRUE)
+# Calculamos la media de votos totales que tienen información sobre los votos a la presidencia
+mean_total=mean(usa_elections$Total.Ballots.Counted..Estimate.[!is.na(usa_elections$Vote.for.Highest.Office..President.)],na.rm=TRUE)
+# Sacamos el procentage de la media de votos válidos
+percentage_votes= mean_president/mean_total
+# Aplicamos dicho porcentage a los votos totales que no disponen dicha información y guardamos los votos válidos en su correspondiente estado
+# Como los votos deben de ser un numero entero se va a redondear el resultado de multiplicar los votos totales por el porcentage de votos válidos
+usa_elections$Vote.for.Highest.Office..President.<-ifelse(is.na(usa_elections$Vote.for.Highest.Office..President.),trunc(usa_elections$Total.Ballots.Counted..Estimate. * percentage_votes), usa_elections$Vote.for.Highest.Office..President.  )
+
+```
+
+
+COMENTAR:OTRA POSIBLE ACCION
+Como vemos, únicamente disponemos de una columna con datos vacíos, Vote for Highest Office President. Este campo indica el número de votos válidos para la presidencia. Al no disponer de dicha información se va a asumir que el número total de votos ha sido válido para la presidencia. Por lo tanto, se van a imputar el número total de votos en aquellas filas en la que existe valores de NA.
+
+```{r}
+#usa_elections$Vote.for.Highest.Office..President.<-ifelse(is.na(usa_elections$Vote.for.Highest.Office..President.),usa_elections$Total.Ballots.Counted..Estimate., usa_elections$Vote.for.Highest.Office..President.  )
+
+```
+Comprobamos que ya no existan valores NA
+
+```{r}
+colSums(is.na(usa_elections))
+```
 ## 3.3. Identificación y tratamiento de valores extremos
+
+Los valores extremos o outliers son aquellos que parecen no ser congruentes sin los comparamos con el resto de los datos. Para identificarlos, podemos hacer uso de dos vías: (1) representar un diagrama de caja por cada variable y ver qué valores distan mucho del rango intercuartílico (la caja) o (2) utilizar la función boxplots.stats() de R, la cual se emplea a continuación. Así, se mostrarán sólo los valores atípicos para aquellas variables que los contienen:
+
+```{r}
+boxplot.stats(usa_elections$Total.Ballots.Counted..Estimate.)$out
+```
+
+```{r}
+boxplot.stats(usa_elections$Vote.for.Highest.Office..President.)$out
+```
+
+```{r}
+boxplot.stats(usa_elections$VEP.Turnout.Rate)$out
+```
+
+```{r}
+boxplot.stats(usa_elections$Voting.Eligible.Population..VEP.)$out
+```
+
+```{r}
+boxplot.stats(usa_elections$Voting.Age.Population..VAP.)$out
+```
+
+```{r}
+boxplot.stats(usa_elections$X..Non.citizen)$out
+```
+
+```{r}
+boxplot.stats(usa_elections$Prison)$out
+```
+
+```{r}
+boxplot.stats(usa_elections$Probation)$out
+```
+
+```{r}
+boxplot.stats(usa_elections$Parole)$out
+```
+
+```{r}
+boxplot.stats(usa_elections$Total.Ineligible.Felon)$out
+```
+
+Como se puede observar, existen entre 3 y 4 valores extremos superiores para prácticamente cada variable.Esto es debido a que dichos datos pertenecen a los 4 estados con más población de estados unidos que son California, Texas, Florida y Nueva York. Por lo tanto se tratan de valores extremos legítimos que no deben ser tratados ya que a más población se espera que hayan más número de votos, población con derecho a voto, etc. Asimismo algunos de estos datos, como el número total de votos en California, se han comprobado en las fuentes facilitadas en el juego de datos original y se han confirmado que son valores probables.
+
+## 3.4. Exportación de los datos preprocesados
+
+Una vez que hemos acometido sobre el conjunto de datos inicial los procedimientos de integración, validación y limpieza anteriores, procedemos a guardar estos en un nuevo fichero denominado 2020 November General Election - Turnout Rates_data_clean.csv:
+
+```{r}
+write.csv(usa_elections, "2020 November General Election - Turnout Rates_data_clean.csv",  row.names = FALSE)
+```
 
 # 4. Análisis de los datos
 
@@ -149,13 +265,326 @@ summary(usa_elections)
 
 ## 4.1. Selección de los grupos de datos a analizar
 
+COMENTAR!
+
+El primer análisis que se va a realizar es comprobar la correlación entre las variables cuantitativas que han tenido mayor incidencia en el porcentaje de participación que ha habido por estado.
+
+En segundo lugar, una vez se haya comprendido la incidencia entre estas variables, se va analizar si la media del porcentaje de participación ha sido mayor en los estados en que han ganado los demócratas o los republicanos. Para ello se van a agrupar los datos según el partido ganador
+
+```{r}
+# Agrupación por ganadores
+usa_elections.dem=usa_elections[usa_elections$party_winner=="DEM",]
+usa_elections.rep=usa_elections[usa_elections$party_winner=="REP",]
+
+
+```
+
+Finalmente se va a realizar una regresión lineal para predecir, según los datos que presenten una mayor dependencia, que partidos ganaría en cada estado cual va a ser  el porcentaje de votacion en cada estado y una regresión logística para predecir el partido ganador según el estado.
+
 ## 4.2. Comprobación de la normalidad y homogeneidad de la varianza
+Para la comprobación de que los valores que toman nuestras variables cuantitativas provienen de una población distribuida normalmente, utilizaremos las pruebas de normalidad de Anderson-Darling y Shapiro-Wilk. Así, se comprueba que para que cada prueba se obtiene un p-valor superior al nivel de significación prefijado $\alpha =0,05$. Si esto se cumple, entonces se considera que variable en cuestión sigue una distribución normal.
+
+```{r}
+library(nortest)
+alpha = 0.05
+col.names = colnames(usa_elections)
+for (i in 1:ncol(usa_elections)) {
+if (i == 1) cat("Variables que no siguen una distribución normal segun el test de Anderson-Darling:\n")
+if (is.integer(usa_elections[,i]) | is.numeric(usa_elections[,i])) {
+p_val = ad.test(usa_elections[,i])$p.value
+if (p_val < alpha) {
+cat(col.names[i])
+# Format output
+if (i < ncol(usa_elections) - 1) cat(", ")
+if (i %% 3 == 0) cat("\n")
+}
+}
+}
+```
+
+```{r}
+library(nortest)
+alpha = 0.05
+col.names = colnames(usa_elections)
+for (i in 1:ncol(usa_elections)) {
+if (i == 1) cat("Variables que no siguen una distribución normal segun el test de Shapiro-Wilk:\n")
+if (is.integer(usa_elections[,i]) | is.numeric(usa_elections[,i])) {
+p_val = shapiro.test(usa_elections[,i])$p.value
+if (p_val < alpha) {
+cat(col.names[i])
+# Format output
+if (i < ncol(usa_elections) - 1) cat(", ")
+if (i %% 3 == 0) cat("\n")
+}
+}
+}
+```
+
+Como se puede observar, en ambos casos se han obtenido los mismos resultados, por lo que podemos concluir que las variables devueltas en ambos casos no siguen una distribución normal con un 95% de confianza. En cualquier caso, para el contraste de hipótesis que se va a realizar en la aplicación de pruebas estadísticas nos interesa saber si la variable VEP.Turnout.Rate sigue una distribución normal según al grupo que pertenezca del partido ganador. Para averiguarlo se van a utilizar los grupos anteriormente creados.
+
+En primer lugar vamos a mostrar el histograma para el partido demócrata y el republicano con su densidad de probabilidad:
+
+```{r}
+# Cremaos las variables turnout en función del partido ganador
+turnout_dem <- usa_elections.dem$VEP.Turnout.Rate
+turnout_rep <- usa_elections.rep$VEP.Turnout.Rate
+```
+
+```{r Fig1, echo=TRUE, fig.height=8, fig.width=15} 
+par(mfrow=c(1,2), mar=c(4,4,4,1), oma=c(0.5,0.5,0.5,0)) 
+
+# histograma, densidad de probabilidad y normal calculada para turnout
+hist(turnout_dem, col = 'lightcyan',
+     main = 'Democratas',
+     freq = FALSE,
+     xlab = 'Turnout Democratas ',
+     ylim=c(0,0.09),
+     xlim=c(50,85),
+     pch=16)
+lines(density(turnout_dem), 
+      col = 'blue', 
+      lwd='4')
+curve(dnorm(x,mean(turnout_dem), sd(turnout_dem)),col='green', lwd=4, add=T)
+
+
+hist(turnout_rep, col = 'lightcyan',
+     main = 'Republicanos',
+     freq = FALSE,
+     xlab = 'Turnout Republicanos',
+     ylim=c(0,0.09),
+     xlim=c(50,85),
+     pch=16)
+lines(density(turnout_rep), 
+      col = 'blue', 
+      lwd='4')
+curve(dnorm(x,mean(turnout_rep), sd(turnout_rep)),col='green', lwd=4, add=T)
+
+```
+
+Observando ambas gráficas se puede observar que en ambos casos se sigue una distribución bastante normal, aunque era de esperar porque cuando se ha analizado en conjunto en los test anteriores la variable VEP.Turnout.Rate seguía una distribución normal. Para terminar se va a realizar el test de Saphiro-Wilk para confirmar su normalidad:
+
+
+```{r}
+shapiro.test(turnout_dem)
+```
+
+```{r}
+shapiro.test(turnout_rep)
+```
+
+Para ambos caso el p-value es superior al nivel de significación 0.05, por lo que se puede asumir la normalidad de ambos grupos.
+
+En cuanto a la varianza se desea analizar la varianza relativa a los ganadores en cada estado en función del porcentage de participación de la población. Como se ha observado anteriormente la variable VEP.Turnout.Rate sigue una distribución normal, por lo que para analizar la varianza se van a utilizar dos test, el de Fligner-Killeen y la función `var.test()`de R.
+
+
+```{r}
+fligner.test(VEP.Turnout.Rate ~ party_winner, data = usa_elections)
+```
+
+```{r}
+var.test(turnout_dem,turnout_rep)
+```
+
+En ambos caso el p-valor es superior al nivel de significación 0.05, por lo que se acepta la hipótesis nula de homocedasticidad y se conluye que la variable VEP.Turnout.Raate presenta varianzas estadísticamente iguales para los dos grupos de party_winner.
 
 ## 4.3. Aplicación de pruebas estadísticas
+
+### 4.3.1.  ¿Qué variables cuantitativas han influido más en el porcentaje de participación en las elecciones?
+
+En primer lugar, procedemos a realizar un análisis de correlación entre las distintas variables para determinar cuáles de ellas ejercen una mayor influencia sobre el precio final del vehículo. Para ello, se utilizará el coeficiente de correlación de Spearman, puesto que hemos visto que tenemos datos que no siguen una distribución normal.
+
+```{r}
+corr_matrix <- matrix(nc = 2, nr = 0)
+colnames(corr_matrix) <- c("estimate", "p-value")
+# Calcular el coeficiente de correlación para cada variable cuantitativa
+# con respecto al campo "party_winner"
+for (i in 2:(ncol(usa_elections) - 1)) {
+if (i!=4){
+if (is.integer(usa_elections[,i]) | is.numeric(usa_elections[,i])) {
+spearman_test = cor.test(usa_elections[,i],
+usa_elections[,4],
+method = "spearman", exact=FALSE)
+corr_coef = spearman_test$estimate
+p_val = spearman_test$p.value
+# Add row to matrix
+pair = matrix(ncol = 2, nrow = 1)
+pair[1][1] = corr_coef
+pair[2][1] = p_val
+corr_matrix <- rbind(corr_matrix, pair)
+rownames(corr_matrix)[nrow(corr_matrix)] <- colnames(usa_elections)[i]
+}
+}
+  else{
+    next()
+  }
+}
+```
+
+```{r}
+print(corr_matrix)
+```
+
+Como se puede observar, la correlación existente entre als distintas variables cuantitativas y el porcentaje de participación en las elecciones no es muy elevado, donde el número total de votos y las personas con permiso de permanencia temporal en EEUU son las que han generado. Asimsimo, los p-values obtenidos han sido mayores al nivel de significación, por lo que se acepta la hipotesis nula que confirma que no existe una gran correlación entre estas variables y el turnout.
+
+### 4.3.2.  ¿Es el valor del porcentaje de participación en las elecciones superior en aquellos estados en el que han ganado los democratas?
+
+La segunda prueba estadística que se aplicará consistirá en un contraste de hipótesis sobre dos muestras para determinar si el valor del porcentaje de participación en las elecciones es superior dependiendo del partido que ha ganado. Para ello, tendremos dos muestras: la primera de ellas se corresponderá con los valores de la proporción de participación en aquellos estados donde han ganado los demócratas y, la segunda, con aquellos donde han ganado los republicanos. Tal y como se ha comprobado anteriormente, nuestras muestras siguen una distribución normal y presentan una desviación estándar igual, por lo que se puede aplicar un contraste de hipótesis utilizando un test paramétrico. En este caso las medias seguirán una distribución $t$ de Stuent con $n_1+n_2 -2$ grados de libertad. Por lo tanto, el contraste de hipótesis quedaría de la siguiente forma:
+
+Hipótesis nula:
+
+$$ H_o: \mu_1 = \mu_2 $$
+
+Hipótesis alternativa:
+
+$$ H_1: \mu_1 > \mu_2 $$
+
+Siendo $\mu_1$ la media poblacional del porcentaje de partipación donde han ganado los demócratas y $\mu_2$ donde han ganado los republicanos.
+
+Tal y como se ha comentado anteriormente se va a utilizar un test paramétrico utilizando la función `t.test()`de R, donde se le especificará que se tratan de varianzas iguales.
+
+```{r}
+t.test(turnout_dem,turnout_rep,alternative="greater", var.equal=TRUE)
+```
+
+Como se puede observar el p-value obtenido ha sido inferior al nivel de significación $\alpha=0.05$, por lo tanto se rechaza la hipotésis nula en favor de la alternativa y se puede afirmar con un 95% de confianza que el porcentaje de participación en las elecciones americanas ha sido superior en aquellos estados donde han ganado los democratas, es decir que en los estados donde ganó Joe Biden hubo mayor incidencia de participación con un 95% de confianza.
+
+### 4.3.3.  Regresión Lineal 
+
+Tal y como se planteó en los objetivos de la actividad, resultará de mucho interés poder realizar predicciones sobre cual podría ser el porcentaje de participación en las siguientes elecciones . Así, se calculará un modelo de regresión lineal utilizando regresores tanto cuantitativos como cualitativos con el que poder realizar las predicciones de los porcentajes. Para obtener un modelo de regresión lineal considerablemente eficiente, lo que haremos será obtener varios modelos de regresión utilizando las variables que estén más correladas, con respecto al valor del turnout de votos, según la tabla obtenida en el apartado 4.3.1. Como variable cualitativa únicamente se pasará el partido ganador. Así, de entre todos los modelos que tengamos, escogeremos el mejor utilizando como criterio aquel que presente un mayor coeficiente de determinación (R2). Cabe destacar que las correlaciones obtenidas anteriormente no han sido muy elevadas, pero aun así se va intentar construir un modelo que permita predecir el valor del turnout.
+
+```{r}
+# Regresores cuantitativos con mayor coeficiente
+# de correlación con respecto a la proporción de participación
+
+votos = usa_elections$Total.Ballots.Counted..Estimate.
+votos_validos = usa_elections$Vote.for.Highest.Office..President.
+parole=usa_elections$Parole
+probation=usa_elections$Probation
+vep= usa_elections$Voting.Eligible.Population..VEP.
+
+
+# Regresores cualitativos
+winner=usa_elections$party_winner
+state=usa_elections$State
+
+# Variable a predecir
+turnout = usa_elections$VEP.Turnout.Rate
+
+# Generación de varios modelos
+modelo1 <- lm(turnout ~   votos_validos + parole + vep, data = usa_elections)
+
+modelo2 <- lm(turnout ~ winner  + votos +  + parole +probation  , data = usa_elections)
+
+modelo3 <- lm(turnout ~ winner  + votos + vep + parole +probation , data = usa_elections)
+
+modelo4 <- lm(turnout ~  winner + votos + votos_validos + parole +probation , data = usa_elections)
+
+modelo5 <- lm(turnout ~ winner  + votos + parole +probation , data = usa_elections)
+```
+
+Para los anteriores modelos de regresión lineal múltiple obtenidos, podemos utilizar el coeficiente de determinación para medir la bondad de los ajustes y quedarnos con aquel modelo que mejor coeficiente presente.
+
+```{r}
+# Tabla con los coeficientes de determinación de cada modelo
+tabla.coeficientes <- matrix(c(1, summary(modelo1)$r.squared,
+2, summary(modelo2)$r.squared,
+3, summary(modelo3)$r.squared,
+4, summary(modelo4)$r.squared,
+5, summary(modelo5)$r.squared),
+ncol = 2, byrow = TRUE)
+colnames(tabla.coeficientes) <- c("Modelo", "R^2")
+tabla.coeficientes
+```
+
+Como se puede observar, el modelo que mejor se ha ajustado ha sido el tercero puesto que su coeficiente de determinación ha sido el más elevado. Ahora, empleando este modelo, podemos proceder a realizar un prediccion de participación en las elecciones 
+```{r}
+newdata <- data.frame(
+winner= "REP",
+votos = 800000,
+vep = 1400000,
+parole = 4000,
+probation = 7000
+)
+
+# Predecir el turnout
+predict(modelo3, newdata)
+```
+
+Con los datos propuestos se obtendría un 63.38 % de aprticipación en las elecciones en un estado en concreto.
+
+### 4.3.4.  Regresión logística 
+
+La siguiente regresión se va a realizar con el objetivo de predecir la variable dicatómica party_winner. La estrategia a seguir en este caso va a ser generar distintos modelos con las mismas variables que para la regresión lineal añadiendo la variable turnout. En este caso, al no disponer del coeficiente de determinación, se van a evaluar las matrices de confusión de cada modelo y se va a calcular la precisión de cada modelo con el objetivo de seleccionar aquel que mejor realice la predicción de que partido ganaría.
+
+```{r}
+# Generación de varios modelos
+
+modelo1 <- glm(as.factor(winner) ~   votos + parole + vep +turnout, data = usa_elections,family=binomial(link=logit))
+
+modelo2 <- glm(as.factor(winner) ~  turnout  + parole +probation  , data = usa_elections, family=binomial(link=logit))
+
+modelo3 <- glm(as.factor(winner) ~  votos_validos + turnout  +probation + parole , data = usa_elections, family=binomial(link=logit))
+
+
+
+```
+
+```{r}
+# Generamos la predicción del modelo
+pdata<-predict(modelo1,type="response")
+# Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
+estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
+# Gurdamos en trueResponse, los resultados que se esperan de la variable winner
+trueResponse=winner
+# Generamos la matriz de confusión
+table(estimatedResponses,trueResponse)
+```
+
+La precisión del modelo1 ha sido de (20+19)/51=0.765
+
+```{r}
+# Generamos la predicción del modelo
+pdata<-predict(modelo2,type="response")
+# Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
+estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
+# Gurdamos en trueResponse, los resultados que se esperan de la variable winner
+trueResponse=winner
+# Generamos la matriz de confusión
+table(estimatedResponses,trueResponse)
+```
+La precisión del modelo2 ha sideo de (19+18)/51=0.725
+
+```{r}
+# Generamos la predicción del modelo
+pdata<-predict(modelo3,type="response")
+# Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
+estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
+# Gurdamos en trueResponse, los resultados que se esperan de la variable winner
+trueResponse=winner
+# Generamos la matriz de confusión
+table(estimatedResponses,trueResponse)
+```
+La precisión del modelo2 ha sideo de (19+29)/51=0.745
+
+
+Como se puede observar, el mejor modelo ha sido el primero. Vamos a proceder a realizar una predicción para ver que partido ganaría en un estado según los siguientes datos:
+
+```{r}
+newdata <- data.frame(
+votos = 800000,
+parole = 4000,
+vep = 1400000,
+turnout=70.2)
+
+# Predecir el partido ganador
+predicted_winner=ifelse(predict(modelo1, newdata, type="response")>0.5,"REP","DEM")
+predicted_winner
+
+```
+
 
 # 5. Representación de los resultados a partir de tablas y gráficas
 
 Mostrar los datos sobre el mapa de eeuu
-
 
 # 6. Conclusiones
