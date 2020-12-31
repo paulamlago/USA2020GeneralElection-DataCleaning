@@ -89,7 +89,7 @@ colSums(is.na(usa_elections))
 mean_president=mean(usa_elections$Vote.for.Highest.Office..President.,na.rm=TRUE)
 # Calculamos la media de votos totales que tienen información sobre los votos a la presidencia
 mean_total=mean(usa_elections$Total.Ballots.Counted..Estimate.[!is.na(usa_elections$Vote.for.Highest.Office..President.)],na.rm=TRUE)
-# Sacamos el procentage de la media de votos válidos
+# Sacamos el procentaje de la media de votos válidos
 percentage_votes= mean_president/mean_total
 # Aplicamos dicho porcentage a los votos totales que no disponen dicha información y guardamos los votos válidos en su correspondiente estado
 # Como los votos deben de ser un numero entero se va a redondear el resultado de multiplicar los votos totales por el porcentage de votos válidos
@@ -99,6 +99,27 @@ usa_elections$Vote.for.Highest.Office..President.<-ifelse(is.na(usa_elections$Vo
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 colSums(is.na(usa_elections))
+
+
+## -------------------------------------------------------------------------------------------------------------------------------------------------------------
+sapply(usa_elections, function(r) any(c(0) %in% r))
+
+
+## -------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Dado que vamos a ejecutar estas líneas de código en diferentes ocasiones, crearemos una función.
+replace_0 <- function(column_index) {
+  mean_column <- mean(usa_elections[,column_index])
+  mean_total = mean(usa_elections$Total.Ballots.Counted..Estimate.[!is.na(usa_elections[,column_index])])
+  percentage_votes = mean_column/mean_total
+  final_column <- ifelse(usa_elections[,column_index] == 0,trunc(usa_elections$Total.Ballots.Counted..Estimate. * percentage_votes), usa_elections[,column_index])
+  return(final_column)
+}
+
+usa_elections$Prison <- replace_0(which(colnames(usa_elections) == "Prison"))
+usa_elections$Probation <- replace_0(which(colnames(usa_elections) == "Probation"))
+usa_elections$Parole <- replace_0(which(colnames(usa_elections) == "Parole"))
+usa_elections$Total.Ineligible.Felon <- replace_0(which(colnames(usa_elections) == "Total.Ineligible.Felon"))
+
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -139,6 +160,24 @@ boxplot.stats(usa_elections$Parole)$out
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 boxplot.stats(usa_elections$Total.Ineligible.Felon)$out
+
+
+## -------------------------------------------------------------------------------------------------------------------------------------------------------------
+my_scale <- function(column_index) {
+  min_col <- min(as.numeric(usa_elections[,column_index]))
+  max_col <- max(as.numeric(usa_elections[,column_index]))
+  column_scaled <- (usa_elections[,column_index] - min_col) / (max_col - min_col)
+  return(column_scaled)
+}
+
+indexes_to_scale = c(2:(ncol(usa_elections) - 1))
+for (col in indexes_to_scale){
+  usa_elections[,col] <- my_scale(col)
+}
+
+
+## -------------------------------------------------------------------------------------------------------------------------------------------------------------
+head(usa_elections)
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -205,8 +244,6 @@ hist(turnout_dem, col = 'lightcyan',
      main = 'Democratas',
      freq = FALSE,
      xlab = 'Turnout Democratas ',
-     ylim=c(0,0.09),
-     xlim=c(50,85),
      pch=16)
 lines(density(turnout_dem), 
       col = 'blue', 
@@ -218,8 +255,6 @@ hist(turnout_rep, col = 'lightcyan',
      main = 'Republicanos',
      freq = FALSE,
      xlab = 'Turnout Republicanos',
-     ylim=c(0,0.09),
-     xlim=c(50,85),
      pch=16)
 lines(density(turnout_rep), 
       col = 'blue', 
@@ -278,48 +313,56 @@ t.test(turnout_dem,turnout_rep,alternative="greater", var.equal=TRUE)
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Regresores cuantitativos con mayor coeficiente
-# de correlación con respecto a la proporción de participación
-
+# TODO: revisar por qué con todas las variables da mejor resultado que solo con las que tienen más correlación
 votos = usa_elections$Total.Ballots.Counted..Estimate.
 votos_validos = usa_elections$Vote.for.Highest.Office..President.
-parole=usa_elections$Parole
-probation=usa_elections$Probation
 vep= usa_elections$Voting.Eligible.Population..VEP.
-
+vap = usa_elections$Voting.Age.Population..VAP.
+no_ciudadanos = usa_elections$X..Non.citizen
+prision = usa_elections$Prison
+probation=usa_elections$Probation
+parole=usa_elections$Parole
+felon = usa_elections$Total.Ineligible.Felon
 
 # Regresores cualitativos
 winner=usa_elections$party_winner
-state=usa_elections$State
 
 # Variable a predecir
 turnout = usa_elections$VEP.Turnout.Rate
 
+# Modelo usando todas las variables
+model <- lm(turnout ~ votos  + votos_validos + vep + vap + no_ciudadanos + prision + probation + parole + felon + winner, data = usa_elections)
+summary(model)$r.squared
+# Modelo usando únicamente las variables cuantitativas que tienen una correlación positiva
+model_positive <- lm(turnout ~ votos  + votos_validos + vep + vap + no_ciudadanos + probation + winner, data = usa_elections)
+summary(model_positive)$r.squared
+
 # Generación de varios modelos
-modelo1 <- lm(turnout ~   votos_validos + parole + vep, data = usa_elections)
-
-modelo2 <- lm(turnout ~ winner  + votos +  + parole +probation  , data = usa_elections)
-
-modelo3 <- lm(turnout ~ winner  + votos + vep + parole +probation , data = usa_elections)
-
-modelo4 <- lm(turnout ~  winner + votos + votos_validos + parole +probation , data = usa_elections)
-
-modelo5 <- lm(turnout ~ winner  + votos + parole +probation , data = usa_elections)
+# modelo1 <- lm(turnout ~   votos_validos + parole + vep, data = usa_elections)
+# 
+# modelo2 <- lm(turnout ~ winner  + votos +  + parole +probation  , data = usa_elections)
+# 
+# modelo3 <- lm(turnout ~ winner  + votos + vep + parole +probation , data = usa_elections)
+# 
+# modelo4 <- lm(turnout ~  winner + votos + votos_validos + parole + probation , data = usa_elections)
+# 
+# modelo5 <- lm(turnout ~ winner  + votos + parole +probation , data = usa_elections)
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Tabla con los coeficientes de determinación de cada modelo
-tabla.coeficientes <- matrix(c(1, summary(modelo1)$r.squared,
-2, summary(modelo2)$r.squared,
-3, summary(modelo3)$r.squared,
-4, summary(modelo4)$r.squared,
-5, summary(modelo5)$r.squared),
-ncol = 2, byrow = TRUE)
-colnames(tabla.coeficientes) <- c("Modelo", "R^2")
-tabla.coeficientes
+# tabla.coeficientes <- matrix(c(1, summary(modelo1)$r.squared,
+# 2, summary(modelo2)$r.squared,
+# 3, summary(modelo3)$r.squared,
+# 4, summary(modelo4)$r.squared,
+# 5, summary(modelo5)$r.squared),
+# ncol = 2, byrow = TRUE)
+# colnames(tabla.coeficientes) <- c("Modelo", "R^2")
+# tabla.coeficientes
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
+# TODO: escalar
 newdata <- data.frame(
 winner= "REP",
 votos = 800000,
@@ -329,56 +372,97 @@ probation = 7000
 )
 
 # Predecir el turnout
-predict(modelo3, newdata)
+#predict(modelo3, newdata)
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Generación de varios modelos
 
-modelo1 <- glm(as.factor(winner) ~   votos + parole + vep +turnout, data = usa_elections,family=binomial(link=logit))
+modelo <- glm(as.factor(winner) ~ votos  + votos_validos + vep + vap + no_ciudadanos + prision + probation + parole + felon, family = binomial(link=logit))
 
-modelo2 <- glm(as.factor(winner) ~  turnout  + parole +probation  , data = usa_elections, family=binomial(link=logit))
+modelo_possitive <- glm (as.factor(winner) ~ votos  + votos_validos + vep + vap + no_ciudadanos + probation + turnout, family = binomial(link=logit))
 
-modelo3 <- glm(as.factor(winner) ~  votos_validos + turnout  +probation + parole , data = usa_elections, family=binomial(link=logit))
-
-
+# modelo1 <- glm(as.factor(winner) ~   votos + parole + vep +turnout, data = usa_elections,family=binomial(link=logit))
+# 
+# modelo2 <- glm(as.factor(winner) ~  turnout  + parole +probation  , data = usa_elections, family=binomial(link=logit))
+# 
+# modelo3 <- glm(as.factor(winner) ~  votos_validos + turnout  +probation + parole , data = usa_elections, family=binomial(link=logit))
 
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
+get_precision <- function(table) {
+  df <- as.data.frame(table)
+  true_DEM <- df[1, "Freq"]
+  true_REP <- df[4, "Freq"]
+  return((true_DEM + true_REP) / 51)
+}
+
+
+## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Generamos la predicción del modelo
-pdata<-predict(modelo1,type="response")
+pdata<-predict(modelo,type="response")
 # Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
 estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
 # Gurdamos en trueResponse, los resultados que se esperan de la variable winner
 trueResponse=winner
 # Generamos la matriz de confusión
-table(estimatedResponses,trueResponse)
+table_results <- table(estimatedResponses,trueResponse)
+get_precision(table_results)
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Generamos la predicción del modelo
-pdata<-predict(modelo2,type="response")
+pdata<-predict(modelo_possitive,type="response")
 # Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
 estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
 # Gurdamos en trueResponse, los resultados que se esperan de la variable winner
 trueResponse=winner
 # Generamos la matriz de confusión
-table(estimatedResponses,trueResponse)
+table_results <- table(estimatedResponses,trueResponse)
+get_precision(table_results)
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Generamos la predicción del modelo
-pdata<-predict(modelo3,type="response")
-# Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
-estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
-# Gurdamos en trueResponse, los resultados que se esperan de la variable winner
-trueResponse=winner
-# Generamos la matriz de confusión
-table(estimatedResponses,trueResponse)
+# # Generamos la predicción del modelo
+# pdata<-predict(modelo1,type="response")
+# # Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
+# estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
+# # Gurdamos en trueResponse, los resultados que se esperan de la variable winner
+# trueResponse=winner
+# # Generamos la matriz de confusión
+# table_results <- table(estimatedResponses,trueResponse)
+# get_precision(table_results)
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
+# # Generamos la predicción del modelo
+# pdata<-predict(modelo2,type="response")
+# # Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
+# estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
+# # Gurdamos en trueResponse, los resultados que se esperan de la variable winner
+# trueResponse=winner
+# # Generamos la matriz de confusión
+# table(estimatedResponses,trueResponse)
+# table_results <- table(estimatedResponses,trueResponse)
+# get_precision(table_results)
+
+
+## -------------------------------------------------------------------------------------------------------------------------------------------------------------
+# # Generamos la predicción del modelo
+# pdata<-predict(modelo3,type="response")
+# # Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
+# estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
+# # Gurdamos en trueResponse, los resultados que se esperan de la variable winner
+# trueResponse=winner
+# # Generamos la matriz de confusión
+# table(estimatedResponses,trueResponse)
+# table_results <- table(estimatedResponses,trueResponse)
+# get_precision(table_results)
+
+
+## -------------------------------------------------------------------------------------------------------------------------------------------------------------
+# TODO: scale
 newdata <- data.frame(
 votos = 800000,
 parole = 4000,
@@ -386,7 +470,7 @@ vep = 1400000,
 turnout=70.2)
 
 # Predecir el partido ganador
-predicted_winner=ifelse(predict(modelo1, newdata, type="response")>0.5,"REP","DEM")
-predicted_winner
+# predicted_winner=ifelse(predict(modelo1, newdata, type="response")>0.5,"REP","DEM")
+# predicted_winner
 
 
