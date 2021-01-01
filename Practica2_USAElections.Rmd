@@ -4,15 +4,20 @@ subtitle: 'Tipología y Ciclo de Vida de los Datos, Universitat Oberta de Catalu
 author: "Abel Romero Búrdalo y Paula Muñoz Lago"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output: 
+  
   html_document:
     toc: yes
     toc_depth: 2
   pdf_document:
     toc: yes
     toc_depth: '2'
+    extra_dependencies: ["float"]
 ---
 
-(https://felixfan.github.io/extract-r-code/)
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H')
+```
+COMENTARIO: Para obtener todo el código(https://felixfan.github.io/extract-r-code/)
 
 \newpage
 
@@ -33,7 +38,7 @@ El dataset con los datos referentes a las votaciones dispone de 15 columnas:
 * **Source**: Fuente de datos (url).
 * **Official/Unofficial**: Esta columna indica si los datos reportados son una vez el conteo ha alcanzado el 100% (oficial), o si aún no se ha terminado el conteo (unofficial).
 * **Total Ballots Counted (Estimate)**: número total de votos en dicho estado.
-* **Vote for Highest Office**: Votos a la presidencia.
+* **Vote for Highest Office**: Votos válidos.
 * **VEP Turnout Rate**: Porcentaje de votantes. VEP, en inglés: Voting Elegible Population
 * **Voting-Eligible Population**: Población con derecho a voto.
 * **Voting-Age Population (VAP)**: Población total de estados unidos con 18 años o más, incluyendo a personas sin derecho a voto por razones diferentes a la edad, como personas sin la nacionalidad o criminales de ciertos estados, donde la ley se lo prohibe. [fuente](https://usafacts.org/data/topics/people-society/democracy-and-society/elections/presidential-voting-age-population/)
@@ -87,10 +92,12 @@ Estos análisis son de gran relevancia a la hora de establecer patrones de voto 
 
 # 2. Integración y selección de los datos de interés a analizar
 
-En vistas a la descripción de las columnas observamos que disponemos de columnas repetidas, como es el caso de la abreviatura del estado y el nombre del mismo. Por ello, la columna relativa a la abreviatura del estado será la primera que eliminemos, con el fin de evitar redundancia en los datos. 
+En vistas a la descripción de las columnas observamos que disponemos de columnas repetidas, como es el caso de la abreviatura del estado y el nombre del mismo. Por ello, la columna relativa al nombre completo del estado será el primero que eliminemos, con el fin de evitar redundancia en los datos. 
 
 ```{r}
+usa_abreviaturas = usa_elections[, ncol(usa_elections)]
 usa_elections <- usa_elections[, -ncol(usa_elections)]
+usa_elections[,1] <- usa_abreviaturas
 ```
 
 Proseguiremos con la nueva última columna, "Overseas Eligible", que se refiere al número de estadounidenses viviendo fuera del país. Ésta columna solo tiene un valor diferente a null, y está relacionado con el dato en la primera fila, correspondiente con la totalidad de estados. Es por ello, que a continuación retiraremos la priemra fila y la guardaremos en una variable, para así poder estuadiar los datos por estado, pero manteniendo la información del total por si nos hiciese falta a continuación. Finalmente eliminaremos la columna "Overseas Eligible", dado que todos sus valores son null.
@@ -603,6 +610,8 @@ table_results <- table(estimatedResponses,trueResponse)
 get_precision(table_results)
 ```
 
+La precisión de este modelo es del 90%.
+
 ```{r}
 # Generamos la predicción del modelo
 pdata<-predict(modelo_possitive,type="response")
@@ -614,6 +623,8 @@ trueResponse=winner
 table_results <- table(estimatedResponses,trueResponse)
 get_precision(table_results)
 ```
+
+La precisión de este modelo es del 78%.
 
 ```{r}
 # # Generamos la predicción del modelo
@@ -677,6 +688,58 @@ turnout=70.2)
 
 # 5. Representación de los resultados a partir de tablas y gráficas
 
-Mostrar los datos sobre el mapa de eeuu
+Para la visualización de los datos se utlizará también el lenguaje Python, dado que ofrece la representación de mapas.
+
+
+```{python eval = FALSE}
+for col in usa_elections.columns[1:]:
+    vep_turnout_rate = usa_elections.loc[:,col]
+
+    fig = ex.choropleth(locations=usa_elections.State, 
+                        locationmode="USA-states",
+                        color= vep_turnout_rate, 
+                        scope="usa",
+                        color_continuous_scale=ex.colors.diverging.Portland)
+
+    fig.update_layout(title = col)
+    fig.show()
+```
+
+Estudiamos primero los mapas en los que se muestra el número de votos por cada estado, así como el número de votos válidos. Se observa que es en California donde más votantes han acudido a las urnas, pero esto puede ser por la densidad poblacional. El número total de votos válidos (Vote for Higheset Office President) no se mostrará, dado que al mostrarse solo, sin la relación con el número total de votos, cadece de significado y el gráfico obtenido sería el mismo.
+```{r, echo=FALSE, fig.cap="Número total de votos", out.width = '100%',fig.align='center'}
+knitr::include_graphics(c("imagenes/TotalBallots.png"))
+```
+
+Observamos en los gráficos siguientes que pese a que el gráfico anterior nos indicaba que era en California donde más votos se habían registrado, no todos los ciudadanos con derecho a voto de dicho estado han ejercido su derecho, dado que la participación no es la más alta, siendo mucho mayor en Maine, Minessota e Iowa. El gráfico relacionado con las personas que tienen derecho a voto en cambio muestra un resultado muy similar al de la totalidad de los votos, por lo que la densidad poblacional vuelve a destacar en estas visualizaciones.
+```{r, echo=FALSE, fig.cap="Porcentaje de votantes y Personas con edad para votar en todo el país y tienen derecho a voto",out.width="49%", out.height="20%",fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("imagenes/VEPTurnout.png", "imagenes/VEP.png"))
+```
+
+Las siguientes visualizaciones muestran la totalidad de personas edad para votar, incluyendo a las personas a las que se les ha revocado el derecho ya se por criminalidad u otras causas a la izquierda, y el número de personas sin la nacionalidad estadounidense habitando en cada estado. El primer gráfico no muestra mucha diferencia con los anteriores, en los que no se incluyen las personas sin derechos, ya que este conjunto de personas es muy reducido. El segundo gráfico muestra que los estados en los que más inmigración hay son California y Texas.
+
+```{r, echo=FALSE, fig.cap="Personas con edad para votar en todo el país, incluyendo personas a las que se les ha revocado el derecho y Personas que no tienen la nacionalidad estadounidense",out.width="49%", out.height="20%",fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("imagenes/VAP.png", "imagenes/NonCitizen.png"))
+```
+
+El número de personas que han mandado su voto desde la carcel muesta que han sicho muchos más votantes desde Texas, seguidos de California y Florida. De la misma forma, el número de personas que han votado mientras disfrutaban del tercer grado destaca en los mismos estados, aunque se hace especialmente relevante en Georgia. Estos datos pueden darse tanto por una mayor densidad poblacional, que se convertiría en un mayor número de criminales, como por unas leyes mucho más estrictas en dichos estados, que se resolvería en un mayor número de encarcelados.
+```{r, echo=FALSE, fig.cap="Personas que se encuentran internos en una prisión y votan desde dicha institución y personas con permiso de tercer grado",out.width="49%", out.height="20%",fig.show='hold',fig.align='center', fig.pos="H"}
+knitr::include_graphics(c("imagenes/Prision.png", "imagenes/Probation.png"))
+```
+
+Los siguientes gráficos nos muestran cuantos visitantes tiene cada estado, siendo esto el número de personas con permiso de permanencia temporal, variable en la que siguen destacando California y Texas, seguidas de Nueva York. A continuación observamos que las personas que no tienen derecho a voto a causa de su criminalidad es más alta en Texas que en el resto de estados. Esta variable sería casi la totalidad (ya que podría haber otras causas) de la diferencia entre VAP y VEP, mostradas anteriormente.
+
+```{r, echo=FALSE, fig.cap="Personas con permiso de permanencia temporal y Personas que no tienen derecho a voto a causa del crimen que han cometido",out.width="49%", out.height="20%",fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("imagenes/Parole.png", "imagenes/Felon.png"))
+```
+
+Finalmente, mostramos sobre el mapa de EEUU los estados en los que ha resultado ganador cada partido. Siendo el Republicano en el que se presentaba el ex presidente Donald Trump, y el Demócrata en el que se presentaba Joe Biden. 
+
+```{r, echo=FALSE, fig.cap="Partido más votado en cada estado", out.width = '100%',fig.align='center'}
+knitr::include_graphics("imagenes/PartyWinner.png")
+```
 
 # 6. Conclusiones
+
+Con este estudio hemos comprobado cuál es la utilidad de realizar un cuidado preprocesamiento de los datos, para así evitar diferencias en los tipos de datos, incongruencias con outliers o valores nulos (NA, cero, etc). De la misma forma, hemos visto cómo aplicar pruebas estadísticas arroja luz sobre las diferentes características de los datos con los que trabajamos, como puede ser la distribución o la correlación entre ellos. 
+Finalmente, la realización de contraste de hipótesis nos ha llevado a sacar ciertas conclusiones sobre los datos. Hemos planteado diferentes preguntas sobre los datos, concluyendo en que no existe una gran correlación entre las variables cuantitativas estudiadas y el porcentaje de participación. Sin embargo, sí que hemos demostrado una relación entre el porcentaje de participación y la victoria demócrata.
+Las regresiones realizadas nos han indicado cuál es la tendencia electoral en EEUU, y dejan abierta una oportunidad de estudio de estos datos en vistas a las próximas elecciones. La regresión lineal múltiple aplicada utilizando todas las variables cuantitativas ha resultado en un modelo con una confianza del 70%, mientras que la regresión logística ha resultado mucho mejor para esta tarea, ofreciendo una confianza del 90% a la hora de predecir el partido ganador en cada estado.

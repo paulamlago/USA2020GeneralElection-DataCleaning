@@ -1,3 +1,7 @@
+## ----global_options, include=FALSE----------------------------------------------------------------------------------------------------------------------------
+knitr::opts_chunk$set(fig.pos = 'H')
+
+
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 fileDirectory <- getwd()
 csv_usa <- file.path(fileDirectory, '2020 November General Election - Turnout Rates.csv')
@@ -20,7 +24,9 @@ head(usa_winner)
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
+usa_abreviaturas = usa_elections[, ncol(usa_elections)]
 usa_elections <- usa_elections[, -ncol(usa_elections)]
+usa_elections[,1] <- usa_abreviaturas
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -473,4 +479,49 @@ turnout=70.2)
 # predicted_winner=ifelse(predict(modelo1, newdata, type="response")>0.5,"REP","DEM")
 # predicted_winner
 
+
+
+## for col in usa_elections.columns[1:]:
+
+##     vep_turnout_rate = usa_elections.loc[:,col]
+
+## 
+##     fig = ex.choropleth(locations=usa_elections.State,
+
+##                         locationmode="USA-states",
+
+##                         color= vep_turnout_rate,
+
+##                         scope="usa",
+
+##                         color_continuous_scale=ex.colors.diverging.Portland)
+
+## 
+##     fig.update_layout(title = col)
+
+##     fig.show()
+
+
+## ---- echo=FALSE, fig.cap="Número total de votos", out.width = '100%',fig.align='center'----------------------------------------------------------------------
+knitr::include_graphics(c("imagenes/TotalBallots.png"))
+
+
+## ---- echo=FALSE, fig.cap="Porcentaje de votantes y Personas con edad para votar en todo el país y tienen derecho a voto",out.width="49%", out.height="20%",fig.show='hold',fig.align='center'----
+knitr::include_graphics(c("imagenes/VEPTurnout.png", "imagenes/VEP.png"))
+
+
+## ---- echo=FALSE, fig.cap="Personas con edad para votar en todo el país, incluyendo personas a las que se les ha revocado el derecho y Personas que no tienen la nacionalidad estadounidense",out.width="49%", out.height="20%",fig.show='hold',fig.align='center'----
+knitr::include_graphics(c("imagenes/VAP.png", "imagenes/NonCitizen.png"))
+
+
+## ---- echo=FALSE, fig.cap="Personas que se encuentran internos en una prisión y votan desde dicha institución y personas con permiso de tercer grado",out.width="49%", out.height="20%",fig.show='hold',fig.align='center', fig.pos="H"----
+knitr::include_graphics(c("imagenes/Prision.png", "imagenes/Probation.png"))
+
+
+## ---- echo=FALSE, fig.cap="Personas con permiso de permanencia temporal y Personas que no tienen derecho a voto a causa del crimen que han cometido",out.width="49%", out.height="20%",fig.show='hold',fig.align='center'----
+knitr::include_graphics(c("imagenes/Parole.png", "imagenes/Felon.png"))
+
+
+## ---- echo=FALSE, fig.cap="Partido más votado en cada estado", out.width = '100%',fig.align='center'----------------------------------------------------------
+knitr::include_graphics("imagenes/PartyWinner.png")
 
