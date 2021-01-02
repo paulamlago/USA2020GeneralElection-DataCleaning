@@ -5,17 +5,18 @@ author: "Abel Romero Búrdalo y Paula Muñoz Lago"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output: 
   
-  html_document:
-    toc: yes
-    toc_depth: 2
   pdf_document:
     toc: yes
     toc_depth: '2'
     extra_dependencies: ["float"]
+  html_document:
+    toc: yes
+    toc_depth: 2
 ---
 
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.pos = 'H')
+
 ```
 COMENTARIO: Para obtener todo el código(https://felixfan.github.io/extract-r-code/)
 
@@ -86,6 +87,7 @@ head(usa_winner)
 
 
 ## 1.1. Importancia y objetivo del análisis
+
 Gracias a este dataset podemos estudiar como ha influido el numero de votantes y el porcentaje total de votaciones para que en unos estados u otros hayan ganado los demócratas. También podremos plantear algunas clonclusiones sobre las diferencias por estados en cuanto a votos republicanos o demócratas.
 
 Estos análisis son de gran relevancia a la hora de establecer patrones de voto en grupos poblacionales en función de ciertas características, en este caso, según el estado de residencia. Además, disponiendo de conjuntos como este para cada año de elecciones durante un largo periodo de tiempo, podríamos predecir con Machine Learning cuál va a ser el comportamiento de los votantes de cada estado en base a su historia electoral.
@@ -500,96 +502,111 @@ Como se puede observar el p-value obtenido ha sido inferior al nivel de signific
 
 ### 4.3.3.  Regresión Lineal 
 
-Tal y como se planteó en los objetivos de la actividad, resultará de mucho interés poder realizar predicciones sobre cual podría ser el porcentaje de participación en las siguientes elecciones . Así, se calculará un modelo de regresión lineal utilizando regresores tanto cuantitativos como cualitativos con el que poder realizar las predicciones de los porcentajes. Para obtener un modelo de regresión lineal considerablemente eficiente, lo que haremos será obtener varios modelos de regresión utilizando las variables que estén más correlacionadas, con respecto al valor del turnout de votos, según la tabla obtenida en el apartado [4.3.1](#VariablesCuantitativas). Como variable cualitativa únicamente se pasará el partido ganador. Así, de entre todos los modelos que tengamos, escogeremos el mejor utilizando como criterio aquel que presente un mayor coeficiente de determinación (R2). Cabe destacar que las correlaciones obtenidas anteriormente no han sido muy elevadas, pero aun así se va intentar construir un modelo que permita predecir el valor del turnout.
+Tal y como se planteó en los objetivos de la actividad, resultará de mucho interés poder realizar predicciones sobre cual podría ser el porcentaje de participación en las siguientes elecciones . Así, se calculará un modelo de regresión lineal utilizando regresores tanto cuantitativos como cualitativos con el que poder realizar las predicciones de los porcentajes. Para obtener un modelo de regresión lineal considerablemente eficiente, lo que haremos será obtener varios modelos de regresión utilizando las variables que estén más correlacionadas, con respecto al valor del turnout de votos, según la tabla obtenida en el apartado [4.3.1](#VariablesCuantitativas). Como variable cualitativa únicamente se pasará el partido ganador. Así, de entre todos los modelos que tengamos, escogeremos el mejor utilizando como criterio aquel que presente un mayor coeficiente de determinación (R2). Cabe destacar que las correlaciones obtenidas anteriormente no han sido muy elevadas, pero aun así se va intentar construir un modelo que permita predecir el valor del procentaje de participación según un estado en concreto.
+
+Para ello, se van a dividr los datos en datos de entrenamiento y de test. En este caso, para el test se va a separar un estado y que posteriormente va a ser utilizado para ver si con el algoritmo generado somos capaces de predecir el porcentaje de participación en dicho estado. El estado elegido ha sido el de Minessota (MN).
+
+```{r}
+# Generamos los datos de test y de train
+test <- usa_elections[usa_elections$State =='MN', ] 
+train <- usa_elections[usa_elections$State !='MN', ] 
+```
 
 ```{r}
 # TODO: revisar por qué con todas las variables da mejor resultado que solo con las que tienen más correlación
-votos = usa_elections$Total.Ballots.Counted..Estimate.
-votos_validos = usa_elections$Vote.for.Highest.Office..President.
-vep= usa_elections$Voting.Eligible.Population..VEP.
-vap = usa_elections$Voting.Age.Population..VAP.
-no_ciudadanos = usa_elections$X..Non.citizen
-prision = usa_elections$Prison
-probation=usa_elections$Probation
-parole=usa_elections$Parole
-felon = usa_elections$Total.Ineligible.Felon
+votos = train$Total.Ballots.Counted..Estimate.
+votos_validos = train$Vote.for.Highest.Office..President.
+vep= train$Voting.Eligible.Population..VEP.
+vap = train$Voting.Age.Population..VAP.
+no_ciudadanos = train$X..Non.citizen
+prision = train$Prison
+probation=train$Probation
+parole=train$Parole
+felon = train$Total.Ineligible.Felon
 
 # Regresores cualitativos
-winner=usa_elections$party_winner
+winner=train$party_winner
 
 # Variable a predecir
-turnout = usa_elections$VEP.Turnout.Rate
+turnout = train$VEP.Turnout.Rate
 
-# Modelo usando todas las variables
-model <- lm(turnout ~ votos  + votos_validos + vep + vap + no_ciudadanos + prision + probation + parole + felon + winner, data = usa_elections)
-summary(model)$r.squared
-# Modelo usando únicamente las variables cuantitativas que tienen una correlación positiva
-model_positive <- lm(turnout ~ votos  + votos_validos + vep + vap + no_ciudadanos + probation + winner, data = usa_elections)
-summary(model_positive)$r.squared
 
 # Generación de varios modelos
-# modelo1 <- lm(turnout ~   votos_validos + parole + vep, data = usa_elections)
+modelo1 <- lm(turnout ~   votos_validos + parole + vep + felon, data = train)
 # 
-# modelo2 <- lm(turnout ~ winner  + votos +  + parole +probation  , data = usa_elections)
+ modelo2 <- lm(turnout ~ winner  + votos_validos + parole + vep + felon  , data = train)
 # 
-# modelo3 <- lm(turnout ~ winner  + votos + vep + parole +probation , data = usa_elections)
+modelo3 <- lm(turnout ~ winner  + votos + vep + probation +parole  , data = train)
 # 
-# modelo4 <- lm(turnout ~  winner + votos + votos_validos + parole + probation , data = usa_elections)
+modelo4 <- lm(turnout ~  winner + votos + votos_validos + vep + prision , data = train)
 # 
-# modelo5 <- lm(turnout ~ winner  + votos + parole +probation , data = usa_elections)
+ modelo5 <- lm(turnout ~ winner  + votos + parole +probation + prision+ felon , data = train)
 ```
 
 Para los anteriores modelos de regresión lineal múltiple obtenidos, podemos utilizar el coeficiente de determinación para medir la bondad de los ajustes y quedarnos con aquel modelo que mejor coeficiente presente.
 
 ```{r}
 # Tabla con los coeficientes de determinación de cada modelo
-# tabla.coeficientes <- matrix(c(1, summary(modelo1)$r.squared,
-# 2, summary(modelo2)$r.squared,
-# 3, summary(modelo3)$r.squared,
-# 4, summary(modelo4)$r.squared,
-# 5, summary(modelo5)$r.squared),
-# ncol = 2, byrow = TRUE)
-# colnames(tabla.coeficientes) <- c("Modelo", "R^2")
-# tabla.coeficientes
+tabla.coeficientes <- matrix(c(1, summary(modelo1)$r.squared,
+ 2, summary(modelo2)$r.squared,
+ 3, summary(modelo3)$r.squared,
+ 4, summary(modelo4)$r.squared,
+ 5, summary(modelo5)$r.squared),
+ ncol = 2, byrow = TRUE)
+ colnames(tabla.coeficientes) <- c("Modelo", "R^2")
+ tabla.coeficientes
 ```
 
-Como se puede observar, el modelo que mejor se ha ajustado ha sido el tercero puesto que su coeficiente de determinación ha sido el más elevado. Ahora, empleando este modelo, podemos proceder a realizar un prediccion de participación en las elecciones 
+Como se puede observar, el modelo que mejor se ha ajustado ha sido el tercero puesto que su coeficiente de determinación ha sido el más elevado. Ahora, empleando este modelo, podemos proceder a realizar un prediccion de participación en las elecciones en Minnestoa. 
 ```{r}
-# TODO: escalar
-newdata <- data.frame(
-winner= "REP",
-votos = 800000,
-vep = 1400000,
-parole = 4000,
-probation = 7000
+# Guardamos los valores de los regresores del test
+lineardata <- data.frame(
+winner= test$party_winner,
+votos = test$Total.Ballots.Counted..Estimate.,
+vep = test$Voting.Eligible.Population..VEP.,
+probation = test$Probation,
+parole = test$Parole
+
 )
 
 # Predecir el turnout
-#predict(modelo3, newdata)
+predict(modelo3, lineardata)
 ```
 
-Con los datos propuestos se obtendría un 63.38 % de aprticipación en las elecciones en un estado en concreto.
-
+COMENTAR: Si no normalizamos comparar el resultado en % con los datos del test, si normalizamos lo mismo.
 ### 4.3.4.  Regresión logística 
 
 La siguiente regresión se va a realizar con el objetivo de predecir la variable dicatómica party_winner. La estrategia a seguir en este caso va a ser generar distintos modelos con las mismas variables que para la regresión lineal añadiendo la variable turnout. En este caso, al no disponer del coeficiente de determinación, se van a evaluar las matrices de confusión de cada modelo y se va a calcular la precisión de cada modelo con el objetivo de seleccionar aquel que mejor realice la predicción de que partido ganaría.
 
 ```{r}
 # Generación de varios modelos
-
-modelo <- glm(as.factor(winner) ~ votos  + votos_validos + vep + vap + no_ciudadanos + prision + probation + parole + felon, family = binomial(link=logit))
-
-modelo_possitive <- glm (as.factor(winner) ~ votos  + votos_validos + vep + vap + no_ciudadanos + probation + turnout, family = binomial(link=logit))
-
-# modelo1 <- glm(as.factor(winner) ~   votos + parole + vep +turnout, data = usa_elections,family=binomial(link=logit))
-# 
-# modelo2 <- glm(as.factor(winner) ~  turnout  + parole +probation  , data = usa_elections, family=binomial(link=logit))
-# 
-# modelo3 <- glm(as.factor(winner) ~  votos_validos + turnout  +probation + parole , data = usa_elections, family=binomial(link=logit))
-
+# Modelo 1
+modelo1 <- glm(as.factor(winner) ~   votos + vep + probation +parole +turnout, data =train,family=binomial(link=logit))
+# Modelo 2
+modelo2 <- glm(as.factor(winner) ~  turnout  + parole +probation  , data = train, family=binomial(link=logit))
+# Modelo 3
+modelo3 <- glm(as.factor(winner) ~  votos_validos   +probation + parole + vap , data = train, family=binomial(link=logit))
+# Modelo 4
+modelo4 <- glm(as.factor(winner) ~  votos_validos + probation + felon+prision , data = train, family=binomial(link=logit))
+# Modelo 5
+modelo5 <- glm(as.factor(winner) ~   turnout + votos + vep +vap+ felon   , data = train, family=binomial(link=logit))
 ```
 
+Definimos las funciones calc_cmatrix y get_precision para calcular la matriz de confusión y calcular la precisión del modelo
+
 ```{r}
+# Función para cacular la matriz de confusión de un modelo en concreto
+calc_cmatrix<- function(model){
+  pdata<-predict(model,type="response")
+# Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
+estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
+# Gurdamos en trueResponse, los resultados que se esperan de la variable winner
+trueResponse=winner
+# Generamos la matriz de confusión
+return(table(estimatedResponses,trueResponse))
+}
+
+# Calculamos la precisión del modelo
 get_precision <- function(table) {
   df <- as.data.frame(table)
   true_DEM <- df[1, "Freq"]
@@ -598,99 +615,64 @@ get_precision <- function(table) {
 }
 ```
 
+Modelo 1:
 ```{r}
-# Generamos la predicción del modelo
-pdata<-predict(modelo,type="response")
-# Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
-estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
-# Gurdamos en trueResponse, los resultados que se esperan de la variable winner
-trueResponse=winner
-# Generamos la matriz de confusión
-table_results <- table(estimatedResponses,trueResponse)
+# Calculamos la precisión del modelo 1
+table_results <- calc_cmatrix(modelo1)
 get_precision(table_results)
 ```
 
-La precisión de este modelo es del 90%.
-
+Modelo 2:
 ```{r}
-# Generamos la predicción del modelo
-pdata<-predict(modelo_possitive,type="response")
-# Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
-estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
-# Gurdamos en trueResponse, los resultados que se esperan de la variable winner
-trueResponse=winner
-# Generamos la matriz de confusión
-table_results <- table(estimatedResponses,trueResponse)
+# Calculamos la precisión del modelo 2
+table_results <- calc_cmatrix(modelo2)
 get_precision(table_results)
 ```
 
-La precisión de este modelo es del 78%.
-
+Modelo 3:
 ```{r}
-# # Generamos la predicción del modelo
-# pdata<-predict(modelo1,type="response")
-# # Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
-# estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
-# # Gurdamos en trueResponse, los resultados que se esperan de la variable winner
-# trueResponse=winner
-# # Generamos la matriz de confusión
-# table_results <- table(estimatedResponses,trueResponse)
-# get_precision(table_results)
+# Calculamos la precisión del modelo 3
+table_results <- calc_cmatrix(modelo3)
+get_precision(table_results)
 ```
 
-La precisión del modelo1 ha sido de (20+19)/51=0.765
-
+Modelo 4:
 ```{r}
-# # Generamos la predicción del modelo
-# pdata<-predict(modelo2,type="response")
-# # Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
-# estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
-# # Gurdamos en trueResponse, los resultados que se esperan de la variable winner
-# trueResponse=winner
-# # Generamos la matriz de confusión
-# table(estimatedResponses,trueResponse)
-# table_results <- table(estimatedResponses,trueResponse)
-# get_precision(table_results)
+# Calculamos la precisión del modelo 5
+table_results <- calc_cmatrix(modelo4)
+get_precision(table_results)
 ```
-La precisión del modelo2 ha sideo de (19+18)/51=0.725
 
+Modelo 5:
 ```{r}
-# # Generamos la predicción del modelo
-# pdata<-predict(modelo3,type="response")
-# # Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
-# estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
-# # Gurdamos en trueResponse, los resultados que se esperan de la variable winner
-# trueResponse=winner
-# # Generamos la matriz de confusión
-# table(estimatedResponses,trueResponse)
-# table_results <- table(estimatedResponses,trueResponse)
-# get_precision(table_results)
+# Calculamos la precisión del modelo 5
+table_results <- calc_cmatrix(modelo5)
+get_precision(table_results)
 ```
-La precisión del modelo2 ha sideo de (19+29)/51=0.745
-
-
-Como se puede observar, el mejor modelo ha sido el primero. Vamos a proceder a realizar una predicción para ver que partido ganaría en un estado según los siguientes datos:
+El modelo que mejor precisión ha presentado ha sido el primero, por lo que se va a aplicar una predicción sobre los datos de test con dicho modelo para ver si es capaz de predecir que estado ganó en Minnesota.
 
 ```{r}
 # TODO: scale
-newdata <- data.frame(
-votos = 800000,
-parole = 4000,
-vep = 1400000,
-turnout=70.2)
+logdata <- data.frame(
+votos = test$Total.Ballots.Counted..Estimate.,
+vep = test$Voting.Eligible.Population..VEP.,
+probation = test$Probation,
+parole=test$Parole,
+turnout=test$VEP.Turnout.Rate)
+
 
 # Predecir el partido ganador
-# predicted_winner=ifelse(predict(modelo1, newdata, type="response")>0.5,"REP","DEM")
-# predicted_winner
+predicted_winner=ifelse(predict(modelo1, logdata, type="response")>0.5,"REP","DEM")
+predicted_winner
 
 ```
+
+Como se puede observar, el algoritmo ha sido capaz de predecir correctamente el estado ganador en Minnesota.
 
 
 # 5. Representación de los resultados a partir de tablas y gráficas
 
 Para la visualización de los datos se utlizará también el lenguaje Python, dado que ofrece la representación de mapas.
-
-
 ```{python eval = FALSE}
 for col in usa_elections.columns[1:]:
     vep_turnout_rate = usa_elections.loc[:,col]
@@ -742,4 +724,9 @@ knitr::include_graphics("imagenes/PartyWinner.png")
 
 Con este estudio hemos comprobado cuál es la utilidad de realizar un cuidado preprocesamiento de los datos, para así evitar diferencias en los tipos de datos, incongruencias con outliers o valores nulos (NA, cero, etc). De la misma forma, hemos visto cómo aplicar pruebas estadísticas arroja luz sobre las diferentes características de los datos con los que trabajamos, como puede ser la distribución o la correlación entre ellos. 
 Finalmente, la realización de contraste de hipótesis nos ha llevado a sacar ciertas conclusiones sobre los datos. Hemos planteado diferentes preguntas sobre los datos, concluyendo en que no existe una gran correlación entre las variables cuantitativas estudiadas y el porcentaje de participación. Sin embargo, sí que hemos demostrado una relación entre el porcentaje de participación y la victoria demócrata.
-Las regresiones realizadas nos han indicado cuál es la tendencia electoral en EEUU, y dejan abierta una oportunidad de estudio de estos datos en vistas a las próximas elecciones. La regresión lineal múltiple aplicada utilizando todas las variables cuantitativas ha resultado en un modelo con una confianza del 70%, mientras que la regresión logística ha resultado mucho mejor para esta tarea, ofreciendo una confianza del 90% a la hora de predecir el partido ganador en cada estado.
+Las regresiones realizadas nos han indicado cuál es la tendencia electoral en EEUU, y dejan abierta una oportunidad de estudio de estos datos en vistas a las próximas elecciones. La regresión lineal múltiple aplicada utilizando todas las variables cuantitativas ha resultado en un modelo con una confianza del 64%, mientras que la regresión logística ha resultado mucho mejor para esta tarea, ofreciendo una confianza del 74% a la hora de predecir el partido ganador en cada estado.
+
+# 7. Código
+
+El código se encuentra disponible en el siguiente repositorio de GitHub (https://github.com/paulamlago/USA2020GeneralElection-DataCleaning)
+
