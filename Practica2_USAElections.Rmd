@@ -5,19 +5,16 @@ author: "Abel Romero Búrdalo y Paula Muñoz Lago"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output: 
   
+  html_document:
+    toc: yes
+    toc_depth: 2
   pdf_document:
     toc: yes
     toc_depth: '2'
     extra_dependencies: ["float"]
-  html_document:
-    toc: yes
-    toc_depth: 2
 ---
 
-```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.pos = 'H')
 
-```
 COMENTARIO: Para obtener todo el código(https://felixfan.github.io/extract-r-code/)
 
 \newpage
@@ -112,7 +109,8 @@ usa_elections <- usa_elections[2:nrow(usa_elections),-ncol(usa_elections)]
 La carencia de utilidad de las columnas relativas a la fuente de datos y si se trata de una fuente oficial o no, hacen que también procedamos a eliminarlas del dataset.
 
 ```{r}
-usa_elections <- usa_elections[,-c(grep("Source", colnames(usa_elections)), grep("Official.Unofficial", colnames(usa_elections)))]
+usa_elections <- usa_elections[,-c(grep("Source", colnames(usa_elections)),
+                                   grep("Official.Unofficial", colnames(usa_elections)))]
 ```
 
 Por último se va a generar la columna `party_winners` a partir de los datos del segundo juego de datos. Para ello se van a comparar las columnas REP y DEM y se va a sacar el ganador de cada estado.
@@ -193,13 +191,25 @@ Como vemos, únicamente disponemos de una columna con datos vacíos, Vote for Hi
 ```{r}
 # Calculamos la media de los votos válidos para la presidencia
 mean_president=mean(usa_elections$Vote.for.Highest.Office..President.,na.rm=TRUE)
+
 # Calculamos la media de votos totales que tienen información sobre los votos a la presidencia
-mean_total=mean(usa_elections$Total.Ballots.Counted..Estimate.[!is.na(usa_elections$Vote.for.Highest.Office..President.)],na.rm=TRUE)
+mean_total=mean(
+  usa_elections$
+    Total.Ballots.Counted..Estimate.
+      [!is.na(usa_elections$Vote.for.Highest.Office..President.)]
+  , na.rm=TRUE)
+
 # Sacamos el procentaje de la media de votos válidos
 percentage_votes= mean_president/mean_total
-# Aplicamos dicho porcentage a los votos totales que no disponen dicha información y guardamos los votos válidos en su correspondiente estado
-# Como los votos deben de ser un numero entero se va a redondear el resultado de multiplicar los votos totales por el porcentage de votos válidos
-usa_elections$Vote.for.Highest.Office..President.<-ifelse(is.na(usa_elections$Vote.for.Highest.Office..President.),trunc(usa_elections$Total.Ballots.Counted..Estimate. * percentage_votes), usa_elections$Vote.for.Highest.Office..President.  )
+
+# Aplicamos dicho porcentage a los votos totales que no disponen dicha información 
+#y guardamos los votos válidos en su correspondiente estado
+# Como los votos deben de ser un numero entero se va a redondear el resultado de 
+#multiplicar los votos totales por el porcentage de votos válidos
+usa_elections$Vote.for.Highest.Office..President.<-
+  ifelse(is.na(usa_elections$Vote.for.Highest.Office..President.),
+         trunc(usa_elections$Total.Ballots.Counted..Estimate. * percentage_votes), 
+         usa_elections$Vote.for.Highest.Office..President.  )
 
 ```
 
@@ -220,9 +230,18 @@ Se ha investigado si en dichos estados existe una prisión, y la información en
 # Dado que vamos a ejecutar estas líneas de código en diferentes ocasiones, crearemos una función.
 replace_0 <- function(column_index) {
   mean_column <- mean(usa_elections[,column_index])
-  mean_total = mean(usa_elections$Total.Ballots.Counted..Estimate.[!is.na(usa_elections[,column_index])])
+  
+  mean_total = mean(
+    usa_elections$Total.Ballots.Counted..Estimate.[!is.na(usa_elections[,column_index])]
+    )
+  
   percentage_votes = mean_column/mean_total
-  final_column <- ifelse(usa_elections[,column_index] == 0,trunc(usa_elections$Total.Ballots.Counted..Estimate. * percentage_votes), usa_elections[,column_index])
+  
+  final_column <- ifelse(
+    usa_elections[,column_index] == 0,
+    trunc(usa_elections$Total.Ballots.Counted..Estimate. * percentage_votes), 
+    usa_elections[,column_index])
+  
   return(final_column)
 }
 
@@ -281,38 +300,15 @@ boxplot.stats(usa_elections$Total.Ineligible.Felon)$out
 
 Como se puede observar, existen entre 3 y 4 valores extremos superiores para prácticamente cada variable. Esto es debido a que dichos datos pertenecen a los 4 estados con más población de estados unidos que son California, Texas, Florida y Nueva York. Por lo tanto se tratan de valores extremos legítimos que no deben ser tratados ya que a más población se espera que hayan más número de votos, población con derecho a voto, etc. Asimismo algunos de estos datos, como el número total de votos en California, se han comprobado en las fuentes facilitadas en el juego de datos original y se han confirmado que son valores probables.
 
-## 3.4. Normalización de los datos
-
-Ahora que disponemos de todos los datos, están en el formato adecuado, y hemos completado los valores inválidos, procedemos a normalizar las columnas cuantitativas. Trabajaremos con los datos en un rango entre 0 y 1, dado que nuestro objetivo es proponer un modelo de regresión, esto mejorará los resultados.
-
-```{r}
-my_scale <- function(column_index) {
-  min_col <- min(as.numeric(usa_elections[,column_index]))
-  max_col <- max(as.numeric(usa_elections[,column_index]))
-  column_scaled <- (usa_elections[,column_index] - min_col) / (max_col - min_col)
-  return(column_scaled)
-}
-
-indexes_to_scale = c(2:(ncol(usa_elections) - 1))
-for (col in indexes_to_scale){
-  usa_elections[,col] <- my_scale(col)
-}
-```
-
-De esta forma, podemos comprobar que todas las columnas se han escalado en el rango deseado.
-
-```{r}
-head(usa_elections)
-```
-
-Cabe destacar que escalar los datos a dicho rango no cambiará la distribución de las variables.
 
 ## 3.4. Exportación de los datos preprocesados
 
 Una vez que hemos acometido sobre el conjunto de datos inicial los procedimientos de integración, validación y limpieza anteriores, procedemos a guardar estos en un nuevo fichero denominado 2020 November General Election - Turnout Rates_data_clean.csv:
 
 ```{r}
-write.csv(usa_elections, "2020 November General Election - Turnout Rates_data_clean.csv",  row.names = FALSE)
+write.csv(usa_elections, 
+          "2020 November General Election - Turnout Rates_data_clean.csv",  
+          row.names = FALSE)
 ```
 
 # 4. Análisis de los datos
@@ -324,8 +320,6 @@ summary(usa_elections)
 ```
 
 ## 4.1. Selección de los grupos de datos a analizar
-
-COMENTAR!
 
 El primer análisis que se va a realizar es comprobar la correlación entre las variables cuantitativas que han tenido mayor incidencia en el porcentaje de participación que ha habido por estado.
 
@@ -347,7 +341,8 @@ library(nortest)
 alpha = 0.05
 col.names = colnames(usa_elections)
 for (i in 1:ncol(usa_elections)) {
-  if (i == 1) cat("Variables que no siguen una distribución normal segun el test de Anderson-Darling:\n")
+  if (i == 1) cat("Variables que no siguen una distribución normal 
+                  segun el test de Anderson-Darling:\n")
   if (is.integer(usa_elections[,i]) | is.numeric(usa_elections[,i])) {
     p_val = ad.test(usa_elections[,i])$p.value
     if (p_val < alpha) {
@@ -365,7 +360,8 @@ library(nortest)
 alpha = 0.05
 col.names = colnames(usa_elections)
 for (i in 1:ncol(usa_elections)) {
-  if (i == 1) cat("Variables que no siguen una distribución normal segun el test de Shapiro-Wilk:\n")
+  if (i == 1) cat("Variables que no siguen una distribución normal 
+                  segun el test de Shapiro-Wilk:\n")
   if (is.integer(usa_elections[,i]) | is.numeric(usa_elections[,i])) {
     p_val = shapiro.test(usa_elections[,i])$p.value
     if (p_val < alpha) {
@@ -502,9 +498,9 @@ Como se puede observar el p-value obtenido ha sido inferior al nivel de signific
 
 ### 4.3.3.  Regresión Lineal 
 
-Tal y como se planteó en los objetivos de la actividad, resultará de mucho interés poder realizar predicciones sobre cual podría ser el porcentaje de participación en las siguientes elecciones . Así, se calculará un modelo de regresión lineal utilizando regresores tanto cuantitativos como cualitativos con el que poder realizar las predicciones de los porcentajes. Para obtener un modelo de regresión lineal considerablemente eficiente, lo que haremos será obtener varios modelos de regresión utilizando las variables que estén más correlacionadas, con respecto al valor del turnout de votos, según la tabla obtenida en el apartado [4.3.1](#VariablesCuantitativas). Como variable cualitativa únicamente se pasará el partido ganador. Así, de entre todos los modelos que tengamos, escogeremos el mejor utilizando como criterio aquel que presente un mayor coeficiente de determinación (R2). Cabe destacar que las correlaciones obtenidas anteriormente no han sido muy elevadas, pero aun así se va intentar construir un modelo que permita predecir el valor del procentaje de participación según un estado en concreto.
+Tal y como se planteó en los objetivos de la actividad, resultará de mucho interés poder realizar predicciones sobre cual podría ser el porcentaje de participación en las siguientes elecciones . Así, se calculará un modelo de regresión lineal utilizando regresores tanto cuantitativos como cualitativos con el que poder realizar las predicciones de los porcentajes. Para obtener un modelo de regresión lineal considerablemente eficiente, lo que haremos será obtener varios modelos de regresión. Como variable cualitativa únicamente se pasará el partido ganador. Así, de entre todos los modelos que tengamos, escogeremos el mejor utilizando como criterio aquel que presente un mayor coeficiente de determinación (R2). Cabe destacar que las correlaciones obtenidas anteriormente no han sido muy elevadas, pero aun así se va intentar construir un modelo que permita predecir el valor del procentaje de participación según un estado en concreto.
 
-Para ello, se van a dividr los datos en datos de entrenamiento y de test. En este caso, para el test se va a separar un estado y que posteriormente va a ser utilizado para ver si con el algoritmo generado somos capaces de predecir el porcentaje de participación en dicho estado. El estado elegido ha sido el de Minessota (MN).
+Para ello, se van a dividr los datos en datos de entrenamiento y de test. En este caso, para el test se va a separar un estado y que posteriormente va a ser utilizado para ver si con el algoritmo generado somos capaces de predecir el porcentaje de participación en dicho estado. El estado elegido ha sido el de Minnesota (MN).
 
 ```{r}
 # Generamos los datos de test y de train
@@ -513,7 +509,6 @@ train <- usa_elections[usa_elections$State !='MN', ]
 ```
 
 ```{r}
-# TODO: revisar por qué con todas las variables da mejor resultado que solo con las que tienen más correlación
 votos = train$Total.Ballots.Counted..Estimate.
 votos_validos = train$Vote.for.Highest.Office..President.
 vep= train$Voting.Eligible.Population..VEP.
@@ -532,7 +527,7 @@ turnout = train$VEP.Turnout.Rate
 
 
 # Generación de varios modelos
-modelo1 <- lm(turnout ~   votos_validos + parole + vep + felon, data = train)
+modelo1 <- lm(turnout ~ votos_validos + parole + vep + felon, data = train)
 # 
  modelo2 <- lm(turnout ~ winner  + votos_validos + parole + vep + felon  , data = train)
 # 
@@ -540,7 +535,7 @@ modelo3 <- lm(turnout ~ winner  + votos + vep + probation +parole  , data = trai
 # 
 modelo4 <- lm(turnout ~  winner + votos + votos_validos + vep + prision , data = train)
 # 
- modelo5 <- lm(turnout ~ winner  + votos + parole +probation + prision+ felon , data = train)
+modelo5 <- lm(turnout ~ winner  + votos + parole +probation + prision+ felon , data = train)
 ```
 
 Para los anteriores modelos de regresión lineal múltiple obtenidos, podemos utilizar el coeficiente de determinación para medir la bondad de los ajustes y quedarnos con aquel modelo que mejor coeficiente presente.
@@ -570,10 +565,14 @@ parole = test$Parole
 )
 
 # Predecir el turnout
-predict(modelo3, lineardata)
+turout_predicted <- predict(modelo3, lineardata)
 ```
 
-COMENTAR: Si no normalizamos comparar el resultado en % con los datos del test, si normalizamos lo mismo.
+```{r}
+cat("El porcentaje de participación que hubo en minessota es: ", test$VEP.Turnout.Rate,
+  "\nfrente al porcetaje predecido por nuestro modelo, que ha resultado: ", turout_predicted)
+```
+
 ### 4.3.4.  Regresión logística 
 
 La siguiente regresión se va a realizar con el objetivo de predecir la variable dicatómica party_winner. La estrategia a seguir en este caso va a ser generar distintos modelos con las mismas variables que para la regresión lineal añadiendo la variable turnout. En este caso, al no disponer del coeficiente de determinación, se van a evaluar las matrices de confusión de cada modelo y se va a calcular la precisión de cada modelo con el objetivo de seleccionar aquel que mejor realice la predicción de que partido ganaría.
@@ -581,15 +580,20 @@ La siguiente regresión se va a realizar con el objetivo de predecir la variable
 ```{r}
 # Generación de varios modelos
 # Modelo 1
-modelo1 <- glm(as.factor(winner) ~   votos + vep + probation +parole +turnout, data =train,family=binomial(link=logit))
+modelo1 <- glm(as.factor(winner) ~  votos + vep + probation +parole +turnout, 
+               data =train,family=binomial(link=logit))
 # Modelo 2
-modelo2 <- glm(as.factor(winner) ~  turnout  + parole +probation  , data = train, family=binomial(link=logit))
+modelo2 <- glm(as.factor(winner) ~  turnout  + parole +probation, 
+               data = train, family=binomial(link=logit))
 # Modelo 3
-modelo3 <- glm(as.factor(winner) ~  votos_validos   +probation + parole + vap , data = train, family=binomial(link=logit))
+modelo3 <- glm(as.factor(winner) ~  votos_validos   +probation + parole + vap , 
+               data = train, family=binomial(link=logit))
 # Modelo 4
-modelo4 <- glm(as.factor(winner) ~  votos_validos + probation + felon+prision , data = train, family=binomial(link=logit))
+modelo4 <- glm(as.factor(winner) ~  votos_validos + probation + felon+prision , 
+               data = train, family=binomial(link=logit))
 # Modelo 5
-modelo5 <- glm(as.factor(winner) ~   turnout + votos + vep +vap+ felon   , data = train, family=binomial(link=logit))
+modelo5 <- glm(as.factor(winner) ~  turnout + votos + vep +vap+ felon, 
+               data = train, family=binomial(link=logit))
 ```
 
 Definimos las funciones calc_cmatrix y get_precision para calcular la matriz de confusión y calcular la precisión del modelo
@@ -598,7 +602,8 @@ Definimos las funciones calc_cmatrix y get_precision para calcular la matriz de 
 # Función para cacular la matriz de confusión de un modelo en concreto
 calc_cmatrix<- function(model){
   pdata<-predict(model,type="response")
-# Generamos un vector en el que si la predicción es superior a 0.5, se clasifica como REP y en caso contrario como DEM
+# Generamos un vector en el que si la predicción es superior 
+  # a 0.5 se clasifica como REP y en caso contrario como DEM
 estimatedResponses=ifelse(pdata>0.5,"REP","DEM")
 # Gurdamos en trueResponse, los resultados que se esperan de la variable winner
 trueResponse=winner
@@ -652,7 +657,6 @@ get_precision(table_results)
 El modelo que mejor precisión ha presentado ha sido el primero, por lo que se va a aplicar una predicción sobre los datos de test con dicho modelo para ver si es capaz de predecir que estado ganó en Minnesota.
 
 ```{r}
-# TODO: scale
 logdata <- data.frame(
 votos = test$Total.Ballots.Counted..Estimate.,
 vep = test$Voting.Eligible.Population..VEP.,
@@ -663,8 +667,11 @@ turnout=test$VEP.Turnout.Rate)
 
 # Predecir el partido ganador
 predicted_winner=ifelse(predict(modelo1, logdata, type="response")>0.5,"REP","DEM")
-predicted_winner
+```
 
+```{r}
+cat("Ganador en Minnesota", levels(test$party_winner)[test$party_winner], 
+    "\nGanador predecido en dicho estado por nuestro modelo: ", predicted_winner)
 ```
 
 Como se puede observar, el algoritmo ha sido capaz de predecir correctamente el estado ganador en Minnesota.
@@ -672,8 +679,10 @@ Como se puede observar, el algoritmo ha sido capaz de predecir correctamente el 
 
 # 5. Representación de los resultados a partir de tablas y gráficas
 
-Para la visualización de los datos se utlizará también el lenguaje Python, dado que ofrece la representación de mapas.
+Para la visualización de los datos se utlizará también el lenguaje Python, dado que ofrece la representación de mapas. Este código ha sido ejecutado en un [Jupyter Notebook](https://github.com/paulamlago/USA2020GeneralElection-DataCleaning/blob/master/Visualisations.ipynb) y los resultados pueden verse a continuación. 
 ```{python eval = FALSE}
+import plotly.express as ex
+
 for col in usa_elections.columns[1:]:
     vep_turnout_rate = usa_elections.loc[:,col]
 
