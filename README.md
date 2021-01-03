@@ -36,17 +36,17 @@ La carpeta /Documents contiene los documentos con la solución de la práctica
 
 La carpeta /imagenes contiene el conjunto de imagenes generadas con python
 
-* Felon: Distribución de personas por estado que no tienen derecho a voto por criminalidad
-* NonCitizen: Distribución de porcentaje personas por estado con derecho a voto que no son ciudadanos estadounidenses
-* Parole: Distribución de personas por estado  con permiso de permanencia temporal en EEUU.
-* PartyWinner: Distribución por estado de los partidos ganadores
-* Prision: Distribución de votantes por estado desde la cárcel
-* Probation: Distribución de número de criminales con el tercer grado.
-* TotalBallots: Distribución del número total de votos por estado
-* VAP: Distribución de personas por estado con 18 años o más
-* VEP: Distribución de población por estado con derecho a voto
-* VEPTurnout: Distribución del porcentaje de participación por estado
-* VoteHighestOffice: Distribución de votos válidos por estado
+* Felon.png: Distribución de personas por estado que no tienen derecho a voto por criminalidad
+* NonCitizen.png: Distribución de porcentaje personas por estado con derecho a voto que no son ciudadanos estadounidenses
+* Parole.png: Distribución de personas por estado  con permiso de permanencia temporal en EEUU.
+* PartyWinner.png: Distribución por estado de los partidos ganadores
+* Prision.png: Distribución de votantes por estado desde la cárcel
+* Probation.png: Distribución de número de criminales con el tercer grado.
+* TotalBallots.png: Distribución del número total de votos por estado
+* VAP.png: Distribución de personas por estado con 18 años o más
+* VEP.png: Distribución de población por estado con derecho a voto
+* VEPTurnout.png: Distribución del porcentaje de participación por estado
+* VoteHighestOffice.png: Distribución de votos válidos por estado
 
 
 
