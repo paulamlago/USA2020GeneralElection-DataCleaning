@@ -5,13 +5,13 @@ author: "Abel Romero Búrdalo y Paula Muñoz Lago"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output: 
   
-  html_document:
-    toc: yes
-    toc_depth: 2
   pdf_document:
     toc: yes
     toc_depth: '2'
     extra_dependencies: ["float"]
+  html_document:
+    toc: yes
+    toc_depth: 2
 ---
 
 
@@ -738,4 +738,15 @@ Las regresiones realizadas nos han indicado cuál es la tendencia electoral en E
 # 7. Código
 
 El código se encuentra disponible en el siguiente repositorio de GitHub (https://github.com/paulamlago/USA2020GeneralElection-DataCleaning)
+
+# 8. Firmas
+
+```{r echo = FALSE, results = "asis"}
+headers <- c("Contribuciones", "Firma")
+line1 <- c("Investigación previa", "Redacción de las respuestas", "Desarrollo código")
+line2 <- c("Abel Romero Búrdalo, Paula Muñoz Lago", "Abel Romero Búrdalo, Paula Muñoz Lago", "Abel Romero Búrdalo, Paula Muñoz Lago")
+firmas <- data.frame(line1, line2)
+names(firmas) <- headers
+knitr::kable(firmas, format = "latex")
+```
 
