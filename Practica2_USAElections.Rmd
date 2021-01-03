@@ -748,9 +748,4 @@ names(firmas) <- headers
 knitr::kable(firmas, format = "latex")
 ```
 
-| Contribuciones              | Firma                                 |
-|-----------------------------|---------------------------------------|
-| Investigación previa        | Abel Romero Búrdalo, Paula Muñoz Lago |
-| Redacción de las respuestas | Abel Romero Búrdalo, Paula Muñoz Lago |
-| Desarrollo Código           | Abel Romero Búrdalo, Paula Muñoz Lago |
 

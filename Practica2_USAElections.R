@@ -526,3 +526,12 @@ knitr::include_graphics(c("imagenes/Parole.png", "imagenes/Felon.png"))
 ## ---- echo=FALSE, fig.cap="Partido más votado en cada estado", out.width = '100%',fig.align='center'----------------------------------------------------------
 knitr::include_graphics("imagenes/PartyWinner.png")
 
+
+## ----echo = FALSE, results = "asis"---------------------------------------------------------------------------------------------------------------------------
+headers <- c("Contribuciones", "Firma")
+line1 <- c("Investigación previa", "Redacción de las respuestas", "Desarrollo código")
+line2 <- c("Abel Romero Búrdalo, Paula Muñoz Lago", "Abel Romero Búrdalo, Paula Muñoz Lago", "Abel Romero Búrdalo, Paula Muñoz Lago")
+firmas <- data.frame(line1, line2)
+names(firmas) <- headers
+knitr::kable(firmas, format = "latex")
+
