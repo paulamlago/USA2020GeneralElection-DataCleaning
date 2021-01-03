@@ -5,17 +5,15 @@ author: "Abel Romero Búrdalo y Paula Muñoz Lago"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output: 
   
+  html_document:
+    toc: yes
+    toc_depth: 2
   pdf_document:
     toc: yes
     toc_depth: '2'
     extra_dependencies: ["float"]
-  html_document:
-    toc: yes
-    toc_depth: 2
 ---
 
-
-COMENTARIO: Para obtener todo el código(https://felixfan.github.io/extract-r-code/)
 
 \newpage
 
@@ -749,4 +747,10 @@ firmas <- data.frame(line1, line2)
 names(firmas) <- headers
 knitr::kable(firmas, format = "latex")
 ```
+
+| Contribuciones              | Firma                                 |
+|-----------------------------|---------------------------------------|
+| Investigación previa        | Abel Romero Búrdalo, Paula Muñoz Lago |
+| Redacción de las respuestas | Abel Romero Búrdalo, Paula Muñoz Lago |
+| Desarrollo Código           | Abel Romero Búrdalo, Paula Muñoz Lago |
 
